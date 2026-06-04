@@ -4,281 +4,208 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Etiqueta AR</title>
-
-<!-- MindAR + Three.js desde CDN (GitHub Pages tiene internet) -->
-<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{background:#000;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;height:100vh;width:100vw}
-
-/* ── SPLASH ── */
 #splash{position:fixed;inset:0;background:#0a0f0a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.1rem;padding:2rem;text-align:center;z-index:300}
 #splash h1{font-size:1.45rem;font-weight:700;line-height:1.25}
 #splash p{font-size:.87rem;color:#888;max-width:300px;line-height:1.6}
 .g-pill{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.35);border-radius:99px;padding:.3rem .9rem;font-size:.78rem;color:#22c55e}
 .btn-main{background:#22c55e;color:#000;font-weight:700;font-size:1rem;border:none;border-radius:14px;padding:.95rem 2rem;cursor:pointer;width:100%;max-width:300px;transition:opacity .15s}
 .btn-main:active{opacity:.8}
+.btn-main:disabled{background:#555;color:#888;cursor:not-allowed}
 .btn-sec{background:transparent;border:1px solid rgba(255,255,255,.15);color:#888;border-radius:12px;padding:.65rem 1.5rem;cursor:pointer;font-size:.82rem;width:100%;max-width:300px}
-.hint-txt{font-size:.75rem;color:#555;max-width:280px;line-height:1.5}
-
-/* ── LOADING ── */
 #loading{position:fixed;inset:0;background:#000;display:none;flex-direction:column;align-items:center;justify-content:center;gap:1rem;z-index:200}
 .spinner{width:40px;height:40px;border:3px solid rgba(34,197,94,.2);border-top-color:#22c55e;border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 #loading p{font-size:.88rem;color:#aaa}
-
-/* ── ERROR ── */
 #err-screen{position:fixed;inset:0;background:#0a0a0a;display:none;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:2rem;text-align:center;z-index:250}
 #err-screen h2{font-size:1.2rem;color:#f87171}
 #err-screen p{font-size:.85rem;color:#888;max-width:300px;line-height:1.6}
 
-/* ── AR SCENE ── */
+/* AR */
 #ar-wrap{position:fixed;inset:0;display:none;z-index:10}
-/* MindAR inyecta video + canvas aquí */
 #ar-wrap video,#ar-wrap canvas{position:absolute;inset:0;width:100%!important;height:100%!important;object-fit:cover}
-
-/* HUD */
-#hud{position:fixed;top:0;left:0;right:0;z-index:50;padding:1rem;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none}
-.hpill{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.15);border-radius:99px;padding:.35rem .9rem;font-size:.75rem;color:#fff;pointer-events:all;cursor:pointer}
+#hud{position:fixed;top:0;left:0;right:0;z-index:50;padding:1rem;display:none;justify-content:space-between;align-items:flex-start}
+.hpill{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.15);border-radius:99px;padding:.35rem .9rem;font-size:.75rem;color:#fff;cursor:pointer}
 .hpill.g{border-color:rgba(34,197,94,.5);color:#22c55e}
+#scan-hint{position:fixed;bottom:170px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);border-radius:99px;padding:.42rem 1.1rem;font-size:.8rem;color:rgba(255,255,255,.8);z-index:40;pointer-events:none;white-space:nowrap;display:none}
 
-/* Marco de escaneo */
-#scan-frame{position:fixed;top:50%;left:50%;transform:translate(-50%,-60%);width:220px;height:220px;z-index:40;pointer-events:none;display:none}
-.sf-corner{position:absolute;width:22px;height:22px;border-color:#22c55e;border-style:solid}
-.sf-tl{top:0;left:0;border-width:3px 0 0 3px;border-radius:4px 0 0 0}
-.sf-tr{top:0;right:0;border-width:3px 3px 0 0;border-radius:0 4px 0 0}
-.sf-bl{bottom:0;left:0;border-width:0 0 3px 3px;border-radius:0 0 0 4px}
-.sf-br{bottom:0;right:0;border-width:0 3px 3px 0;border-radius:0 0 4px 0}
-#scan-label{position:fixed;bottom:160px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.6);border-radius:99px;padding:.42rem 1.1rem;font-size:.8rem;color:rgba(255,255,255,.8);z-index:40;pointer-events:none;white-space:nowrap;display:none}
-#scan-pulse{position:absolute;inset:0;border:2px solid rgba(34,197,94,.4);border-radius:4px;animation:pulse 2s ease-in-out infinite}
-@keyframes pulse{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.03)}}
+/* DEMO */
+#demo-wrap{position:fixed;inset:0;display:none;flex-direction:column;background:#0a0f0a;z-index:10}
+#demo-hud{position:fixed;top:0;left:0;right:0;z-index:50;padding:1rem;display:flex;justify-content:space-between}
+#demo-c{display:block;touch-action:none;cursor:grab;flex:1}
+#demo-c:active{cursor:grabbing}
+#demo-dots{position:fixed;left:50%;transform:translateX(-50%);display:flex;gap:9px;z-index:30}
+.ddot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.18);transition:background .25s,transform .25s}
+.ddot.on{transform:scale(1.35)}
 
-/* ── PANEL INFO ── */
-#panel{position:fixed;bottom:0;left:0;right:0;background:rgba(6,12,6,.96);border-top:1px solid rgba(34,197,94,.2);border-radius:22px 22px 0 0;z-index:60;transform:translateY(100%);transition:transform .38s cubic-bezier(.32,.72,0,1);max-height:55vh;overflow-y:auto}
+/* PANEL */
+#panel{position:fixed;bottom:0;left:0;right:0;background:rgba(6,12,6,.96);border-top:1px solid rgba(34,197,94,.2);border-radius:22px 22px 0 0;z-index:60;transform:translateY(100%);transition:transform .38s cubic-bezier(.32,.72,0,1);max-height:48vh;overflow-y:auto}
 #panel.up{transform:translateY(0)}
 .phandle{width:36px;height:3px;background:rgba(255,255,255,.2);border-radius:2px;margin:12px auto .9rem;cursor:pointer}
 .p-inner{padding:.25rem 1.25rem 2rem}
-
-/* header patrocinador */
 .sp-head{display:flex;gap:.85rem;align-items:center;margin-bottom:.9rem}
 .sp-ico{width:50px;height:50px;border-radius:13px;background:#1a2f1a;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0}
 .sp-name{font-size:1rem;font-weight:700;line-height:1.2}
 .sp-cat{font-size:.76rem;margin-top:2px}
-
-/* tabs */
 .tabs{display:flex;gap:.4rem;margin-bottom:.9rem;overflow-x:auto;padding-bottom:3px;scrollbar-width:none}
 .tab{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:99px;padding:.35rem .85rem;font-size:.75rem;color:#999;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s}
 .tab.on{color:#000;font-weight:700}
 .seg{display:none}.seg.on{display:block}
-
-/* promo card */
 .promo-card{border-radius:13px;padding:.8rem 1rem;margin-bottom:.85rem;display:flex;gap:.65rem;align-items:center}
-.promo-ico{font-size:1.35rem;flex-shrink:0}
 .promo-t{font-size:.9rem;font-weight:600}
 .promo-s{font-size:.76rem;color:#aaa;margin-top:2px}
 .promo-b{margin-left:auto;font-weight:800;font-size:.82rem;border-radius:99px;padding:2px 9px;white-space:nowrap;flex-shrink:0}
-
-/* actions */
 .acts{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.8rem}
 .act{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:11px;padding:.65rem .5rem;text-align:center;cursor:pointer;font-size:.76rem;color:#fff;display:flex;flex-direction:column;align-items:center;gap:4px;text-decoration:none;transition:background .15s}
 .act:active{background:rgba(255,255,255,.15)}
 .act.main{font-weight:700}
 .act span{font-size:1.15rem}
-
-/* info rows */
 .row{display:flex;align-items:center;gap:.7rem;padding:.5rem 0;border-bottom:1px solid rgba(255,255,255,.06);text-decoration:none;color:inherit}
 .row:last-child{border:none}
 .row-ico{width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:.88rem;flex-shrink:0}
 .row-lbl{font-size:.7rem;color:#666}
 .row-val{font-size:.82rem;color:#eee;margin-top:1px;line-height:1.3}
 .row-arr{margin-left:auto;color:#444;font-size:.9rem}
-
-/* mini mapa */
-.map-box{width:100%;height:130px;border-radius:13px;overflow:hidden;margin-top:.8rem;cursor:pointer;position:relative;background:#1a2a1a}
-.map-lbl{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.65);border-radius:99px;padding:.22rem .75rem;font-size:.74rem;color:#fff;white-space:nowrap}
-
-/* toast */
-#toast{position:fixed;top:64px;left:50%;transform:translateX(-50%) translateY(-10px);background:#22c55e;color:#000;border-radius:99px;padding:.42rem 1.1rem;font-size:.8rem;font-weight:700;z-index:400;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;white-space:nowrap}
+.map-box{width:100%;height:120px;border-radius:13px;overflow:hidden;margin-top:.8rem;cursor:pointer;position:relative;background:#1a2a1a}
+.map-lbl{position:absolute;bottom:7px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.65);border-radius:99px;padding:.2rem .7rem;font-size:.73rem;color:#fff;white-space:nowrap}
+#toast{position:fixed;top:64px;left:50%;transform:translateX(-50%) translateY(-10px);background:#22c55e;color:#000;border-radius:99px;padding:.42rem 1.1rem;font-size:.8rem;font-weight:700;z-index:500;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;white-space:nowrap}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
-
-/* ── DEMO MODE (fallback sin cámara) ── */
-#demo-wrap{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#0a0f0a;z-index:10}
-#demo-c{display:block;touch-action:none;cursor:grab}
-#demo-c:active{cursor:grabbing}
-#demo-dots{position:fixed;z-index:30;left:50%;transform:translateX(-50%);display:flex;gap:9px;transition:bottom .38s cubic-bezier(.32,.72,0,1)}
-.ddot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.18);transition:background .25s,transform .25s;cursor:default}
-.ddot.on{transform:scale(1.35)}
 </style>
 </head>
 <body>
-
 <div id="toast"></div>
 
-<!-- ══════════════ SPLASH ══════════════ -->
 <div id="splash">
   <div style="font-size:3rem" id="sp-emoji">💧</div>
-  <div class="g-pill" id="sp-pill">Cargando patrocinador…</div>
+  <div class="g-pill" id="sp-pill">Cargando…</div>
   <h1>Apunta tu cámara<br>a la etiqueta</h1>
-  <p>Gira la botella frente a tu teléfono y descubre la oferta del patrocinador en la etiqueta.</p>
+  <p>Gira la botella frente a tu teléfono y descubre la oferta del patrocinador.</p>
   <button class="btn-main" id="btn-ar" onclick="startAR()" disabled>📸 Activar cámara AR</button>
   <button class="btn-sec" onclick="startDemo()">🎬 Demo sin cámara</button>
-  <p class="hint-txt">No se requiere app. Requiere permiso de cámara.</p>
 </div>
 
-<!-- ══════════════ LOADING ══════════════ -->
-<div id="loading">
-  <div class="spinner"></div>
-  <p id="load-msg">Iniciando cámara…</p>
-</div>
+<div id="loading"><div class="spinner"></div><p id="load-msg">Cargando…</p></div>
 
-<!-- ══════════════ ERROR ══════════════ -->
 <div id="err-screen">
-  <div style="font-size:2.5rem">📵</div>
-  <h2>No se pudo activar</h2>
-  <p id="err-msg">No se encontró la cámara o se denegó el permiso.</p>
+  <div style="font-size:2.5rem">⚠️</div>
+  <h2>Error</h2>
+  <p id="err-msg"></p>
   <button class="btn-main" style="margin-top:.5rem" onclick="startDemo()">Usar modo demo</button>
   <button class="btn-sec" style="margin-top:.5rem" onclick="showSplash()">Volver</button>
 </div>
 
-<!-- ══════════════ AR SCENE ══════════════ -->
 <div id="ar-wrap"></div>
-
-<!-- HUD (sobre la cámara) -->
-<div id="hud" style="display:none">
+<div id="hud">
   <div class="hpill g" id="ar-status">⦿ Buscando etiqueta…</div>
   <div class="hpill" onclick="stopAR()">✕ Cerrar</div>
 </div>
+<div id="scan-hint">Apunta al QR de la etiqueta</div>
 
-<!-- Marco de escaneo -->
-<div id="scan-frame">
-  <div class="sf-corner sf-tl"></div>
-  <div class="sf-corner sf-tr"></div>
-  <div class="sf-corner sf-bl"></div>
-  <div class="sf-corner sf-br"></div>
-  <div id="scan-pulse"></div>
-</div>
-<div id="scan-label">Apunta al QR de la etiqueta</div>
-
-<!-- ══════════════ DEMO MODE ══════════════ -->
 <div id="demo-wrap">
-  <div id="hud" style="display:flex;position:fixed;top:0;left:0;right:0;z-index:50;padding:1rem;justify-content:space-between">
-    <div class="hpill g">⦿ Demo interactivo</div>
+  <div id="demo-hud">
+    <div class="hpill g">⦿ Demo</div>
     <div class="hpill" onclick="stopDemo()">✕ Salir</div>
   </div>
   <canvas id="demo-c"></canvas>
-  <div id="demo-dots" style="bottom:1rem"></div>
+  <div id="demo-dots"></div>
 </div>
 
-<!-- ══════════════ PANEL INFO ══════════════ -->
 <div id="panel">
   <div class="phandle" onclick="togglePanel()"></div>
   <div class="p-inner">
-
     <div class="sp-head">
       <div class="sp-ico" id="p-ico">🏥</div>
-      <div>
-        <div class="sp-name" id="p-name">Cargando…</div>
-        <div class="sp-cat" id="p-cat"></div>
-      </div>
+      <div><div class="sp-name" id="p-name">—</div><div class="sp-cat" id="p-cat"></div></div>
     </div>
-
-    <div class="tabs" id="tabs">
+    <div class="tabs">
       <div class="tab on" onclick="switchTab(0,this)">🎁 Promo</div>
       <div class="tab" onclick="switchTab(1,this)">📞 Contacto</div>
       <div class="tab" onclick="switchTab(2,this)">📍 Ubicación</div>
     </div>
-
-    <!-- Promo -->
     <div class="seg on" id="seg0">
       <div class="promo-card" id="promo-card">
-        <div class="promo-ico">🎁</div>
-        <div>
-          <div class="promo-t" id="pt">—</div>
-          <div class="promo-s" id="ps"></div>
-        </div>
+        <div style="font-size:1.35rem;flex-shrink:0">🎁</div>
+        <div><div class="promo-t" id="pt">—</div><div class="promo-s" id="ps"></div></div>
         <div class="promo-b" id="pb"></div>
       </div>
       <div class="acts">
         <div class="act main" id="act-wa" onclick="doWa()"><span>💬</span>WhatsApp</div>
         <div class="act" onclick="doTel()"><span>📞</span>Llamar</div>
-        <div class="act" onclick="doVcf()"><span>👤</span>Guardar contacto</div>
-        <a class="act" id="act-web" href="#" target="_blank"><span>🌐</span>Sitio web</a>
+        <div class="act" onclick="doVcf()"><span>👤</span>Contacto</div>
+        <a class="act" id="act-web" href="#" target="_blank"><span>🌐</span>Web</a>
       </div>
     </div>
-
-    <!-- Contacto -->
     <div class="seg" id="seg1">
       <a class="row" id="row-tel" href="#"><div class="row-ico">📞</div><div><div class="row-lbl">Teléfono</div><div class="row-val" id="rv-tel">—</div></div><span class="row-arr">›</span></a>
       <a class="row" id="row-wa" href="#" target="_blank"><div class="row-ico">💬</div><div><div class="row-lbl">WhatsApp</div><div class="row-val">Enviar mensaje</div></div><span class="row-arr">›</span></a>
       <a class="row" id="row-mail" href="#"><div class="row-ico">✉️</div><div><div class="row-lbl">Email</div><div class="row-val" id="rv-email">—</div></div><span class="row-arr">›</span></a>
       <div class="row"><div class="row-ico">🕐</div><div><div class="row-lbl">Horario</div><div class="row-val" id="rv-hours">—</div></div></div>
     </div>
-
-    <!-- Ubicación -->
     <div class="seg" id="seg2">
       <div class="row"><div class="row-ico">📍</div><div><div class="row-lbl">Dirección</div><div class="row-val" id="rv-addr">—</div></div></div>
-      <div id="appt-row" class="row" style="display:none"><div class="row-ico">⏰</div><div><div class="row-lbl">Próxima cita</div><div class="row-val" id="rv-appt">—</div></div></div>
+      <div class="row" id="appt-row" style="display:none"><div class="row-ico">⏰</div><div><div class="row-lbl">Próxima cita</div><div class="row-val" id="rv-appt">—</div></div></div>
       <div class="map-box" onclick="doMap()">
-        <svg id="map-svg" width="100%" height="130" viewBox="0 0 360 130" xmlns="http://www.w3.org/2000/svg">
-          <rect width="360" height="130" fill="#1a2a1a"/>
-          <line x1="0" y1="65" x2="360" y2="65" stroke="#2a3a2a" stroke-width="13"/>
-          <line x1="180" y1="0" x2="180" y2="130" stroke="#2a3a2a" stroke-width="8"/>
-          <line x1="90" y1="0" x2="90" y2="130" stroke="#1e2e1e" stroke-width="4"/>
-          <line x1="270" y1="0" x2="270" y2="130" stroke="#1e2e1e" stroke-width="4"/>
-          <line x1="0" y1="32" x2="360" y2="32" stroke="#1e2e1e" stroke-width="3"/>
-          <line x1="0" y1="98" x2="360" y2="98" stroke="#1e2e1e" stroke-width="3"/>
-          <rect x="6" y="6" width="76" height="22" rx="2" fill="#263326" opacity=".7"/>
-          <rect x="96" y="6" width="76" height="22" rx="2" fill="#263326" opacity=".7"/>
-          <rect x="186" y="6" width="76" height="22" rx="2" fill="#263326" opacity=".7"/>
-          <rect x="276" y="6" width="76" height="22" rx="2" fill="#263326" opacity=".7"/>
-          <rect x="6" y="36" width="76" height="22" rx="2" fill="#263326" opacity=".6"/>
-          <rect x="96" y="36" width="76" height="22" rx="2" fill="#263326" opacity=".6"/>
-          <rect x="186" y="36" width="76" height="22" rx="2" fill="#263326" opacity=".6"/>
-          <rect x="276" y="36" width="76" height="22" rx="2" fill="#263326" opacity=".6"/>
-          <rect x="6" y="70" width="76" height="22" rx="2" fill="#263326" opacity=".6"/>
-          <rect x="96" y="70" width="76" height="22" rx="2" fill="#263326" opacity=".6"/>
-          <rect x="186" y="70" width="76" height="22" rx="2" fill="#263326" opacity=".6"/>
-          <rect x="276" y="70" width="76" height="22" rx="2" fill="#263326" opacity=".6"/>
-          <rect x="6" y="102" width="76" height="22" rx="2" fill="#263326" opacity=".6"/>
-          <rect x="96" y="102" width="76" height="22" rx="2" fill="#263326" opacity=".6"/>
-          <rect x="186" y="102" width="76" height="22" rx="2" fill="#263326" opacity=".6"/>
-          <circle cx="180" cy="65" r="20" fill="none" stroke="#22c55e" stroke-width="2" opacity=".35"/>
-          <circle cx="180" cy="65" r="13" id="map-pin" fill="#22c55e" opacity=".9"/>
-          <circle cx="180" cy="65" r="5" fill="white"/>
+        <svg width="100%" height="120" viewBox="0 0 360 120" xmlns="http://www.w3.org/2000/svg">
+          <rect width="360" height="120" fill="#1a2a1a"/>
+          <line x1="0" y1="60" x2="360" y2="60" stroke="#2a3a2a" stroke-width="12"/>
+          <line x1="180" y1="0" x2="180" y2="120" stroke="#2a3a2a" stroke-width="8"/>
+          <line x1="90" y1="0" x2="90" y2="120" stroke="#1e2e1e" stroke-width="3"/>
+          <line x1="270" y1="0" x2="270" y2="120" stroke="#1e2e1e" stroke-width="3"/>
+          <rect x="5" y="5" width="78" height="20" rx="2" fill="#263326" opacity=".7"/>
+          <rect x="95" y="5" width="78" height="20" rx="2" fill="#263326" opacity=".7"/>
+          <rect x="185" y="5" width="78" height="20" rx="2" fill="#263326" opacity=".7"/>
+          <rect x="275" y="5" width="78" height="20" rx="2" fill="#263326" opacity=".7"/>
+          <rect x="5" y="33" width="78" height="20" rx="2" fill="#263326" opacity=".6"/>
+          <rect x="95" y="33" width="78" height="20" rx="2" fill="#263326" opacity=".6"/>
+          <rect x="185" y="33" width="78" height="20" rx="2" fill="#263326" opacity=".6"/>
+          <rect x="275" y="33" width="78" height="20" rx="2" fill="#263326" opacity=".6"/>
+          <rect x="5" y="68" width="78" height="20" rx="2" fill="#263326" opacity=".6"/>
+          <rect x="95" y="68" width="78" height="20" rx="2" fill="#263326" opacity=".6"/>
+          <rect x="185" y="68" width="78" height="20" rx="2" fill="#263326" opacity=".6"/>
+          <rect x="275" y="68" width="78" height="20" rx="2" fill="#263326" opacity=".6"/>
+          <circle cx="180" cy="60" r="18" fill="none" stroke="#22c55e" stroke-width="2" opacity=".4"/>
+          <circle cx="180" cy="60" r="12" id="map-pin" fill="#22c55e" opacity=".9"/>
+          <circle cx="180" cy="60" r="5" fill="white"/>
         </svg>
         <div class="map-lbl">Toca para abrir en Google Maps</div>
       </div>
       <div class="acts" style="margin-top:.7rem">
-        <div class="act main" onclick="doMap()"><span>🗺️</span>Abrir en Maps</div>
-        <div class="act" onclick="doWa()"><span>💬</span>Pedir referencia</div>
+        <div class="act main" onclick="doMap()"><span>🗺️</span>Abrir Maps</div>
+        <div class="act" onclick="doWa()"><span>💬</span>Referencia</div>
       </div>
     </div>
-
   </div>
 </div>
 
+<!-- MindAR como ES Module -->
+<script type="module">
+import { MindARThree } from 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.module.js';
+window.MindARThree = MindARThree;
+window.mindARReady = true;
+window.dispatchEvent(new Event('mindar-ready'));
+</script>
+
 <script>
-// ══════════════════════════════════════════════════
-// DATOS DEL PATROCINADOR
-// ══════════════════════════════════════════════════
+// ── DATOS ──────────────────────────────────────────
 var D = null;
+var mindARLoaded = false;
 
-// Leer ?id= de la URL
-function getParam(k){
-  var p=new URLSearchParams(window.location.search);
-  return p.get(k);
-}
+window.addEventListener('mindar-ready', function(){
+  mindARLoaded = true;
+  console.log('MindAR listo');
+});
 
-async function loadSponsor(){
-  var id = getParam('id') || 'drramirez';
+// Cargar JSON del patrocinador
+(async function(){
+  var id = new URLSearchParams(window.location.search).get('id') || 'drramirez';
   try {
-    var r = await fetch('sponsors/'+id+'.json');
-    if(!r.ok) throw new Error('not found');
+    var r = await fetch('sponsors/' + id + '.json');
+    if(!r.ok) throw new Error('JSON no encontrado');
     D = await r.json();
   } catch(e) {
-    // fallback hardcoded
+    console.warn('JSON fallback:', e.message);
     D = {
       name:'Dr. Ramírez Ortopedia', cat:'Especialista en rodilla y cadera',
       emoji:'🏥', tel:'8712345678', email:'consultas@drramirez.mx',
@@ -290,25 +217,20 @@ async function loadSponsor(){
     };
   }
   applyData();
-}
+})();
 
 function ftel(t){var d=t.replace(/\D/g,'');return d.length===10?d.replace(/(\d{3})(\d{3})(\d{4})/,'$1 $2 $3'):t;}
 
 function applyData(){
   var c = D.color || '#22c55e';
-  // splash
   document.getElementById('sp-emoji').textContent = D.emoji;
-  document.getElementById('sp-pill').textContent = 'Cortesía de '+D.name;
+  document.getElementById('sp-pill').textContent = 'Cortesía de ' + D.name;
   document.getElementById('btn-ar').disabled = false;
-  // panel header
   document.getElementById('p-ico').textContent = D.emoji;
-  document.getElementById('p-ico').style.background = c+'22';
   document.getElementById('p-name').textContent = D.name;
   document.getElementById('p-cat').textContent = D.cat;
   document.getElementById('p-cat').style.color = c;
-  // tabs color
   document.querySelectorAll('.tab.on').forEach(function(t){t.style.background=c;t.style.borderColor=c;});
-  // promo
   document.getElementById('pt').textContent = D.promo;
   document.getElementById('ps').textContent = D.hours;
   document.getElementById('pb').textContent = D.badge;
@@ -320,481 +242,314 @@ function applyData(){
   document.getElementById('act-wa').style.borderColor = c;
   document.getElementById('act-wa').style.color = '#000';
   document.getElementById('act-web').href = D.web;
-  // contacto
   document.getElementById('row-tel').href = 'tel:'+D.tel;
   document.getElementById('rv-tel').textContent = ftel(D.tel);
   document.getElementById('row-wa').href = 'https://wa.me/'+D.wa;
   document.getElementById('row-mail').href = 'mailto:'+D.email;
   document.getElementById('rv-email').textContent = D.email;
   document.getElementById('rv-hours').textContent = D.hours;
-  // ubicación
   document.getElementById('rv-addr').textContent = D.addr;
-  if(D.appt){
-    document.getElementById('appt-row').style.display='flex';
-    document.getElementById('rv-appt').textContent = D.appt;
-  }
+  if(D.appt){document.getElementById('appt-row').style.display='flex';document.getElementById('rv-appt').textContent=D.appt;}
   document.getElementById('map-pin').setAttribute('fill', c);
 }
 
-loadSponsor();
-
-// ══════════════════════════════════════════════════
-// ACCIONES
-// ══════════════════════════════════════════════════
-function doWa(){
-  var m=encodeURIComponent('Hola! Vi su promoción en la botella de agua (Uber). Me interesa: '+D.promo);
-  window.open('https://wa.me/'+D.wa+'?text='+m,'_blank');
-}
+// ── ACCIONES ─────────────────────────────────────
+function doWa(){var m=encodeURIComponent('Hola! Vi su promoción en la botella de agua (Uber). Me interesa: '+D.promo);window.open('https://wa.me/'+D.wa+'?text='+m,'_blank');}
 function doTel(){window.location.href='tel:'+D.tel;}
-function doMap(){
-  var q=D.map.indexOf(',')>-1?D.map:encodeURIComponent(D.addr);
-  window.open('https://maps.google.com/?q='+q,'_blank');
-}
+function doMap(){var q=D.map.indexOf(',')>-1?D.map:encodeURIComponent(D.addr);window.open('https://maps.google.com/?q='+q,'_blank');}
 function doVcf(){
-  var v='BEGIN:VCARD\nVERSION:3.0\nFN:'+D.name+'\nORG:'+D.name+
-    '\nTEL:'+D.tel+'\nEMAIL:'+D.email+'\nURL:'+D.web+
-    '\nADR:;;'+D.addr+';;;;MX\nNOTE:'+D.promo+'\nEND:VCARD';
-  var b=new Blob([v],{type:'text/vcard'});
-  var a=document.createElement('a');
-  a.href=URL.createObjectURL(b);
-  a.download=D.name.replace(/\s/g,'_')+'.vcf';
-  a.click();
+  var v='BEGIN:VCARD\nVERSION:3.0\nFN:'+D.name+'\nORG:'+D.name+'\nTEL:'+D.tel+'\nEMAIL:'+D.email+'\nURL:'+D.web+'\nADR:;;'+D.addr+';;;;MX\nNOTE:'+D.promo+'\nEND:VCARD';
+  var b=new Blob([v],{type:'text/vcard'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=D.name.replace(/\s/g,'_')+'.vcf';a.click();
   toast('📲 Contacto guardado');
 }
+window.doWa=doWa;window.doTel=doTel;window.doMap=doMap;window.doVcf=doVcf;
 
-// ══════════════════════════════════════════════════
-// PANEL
-// ══════════════════════════════════════════════════
-var panelOpen=false;
-function openPanel(){
-  panelOpen=true;
-  document.getElementById('panel').classList.add('up');
-}
-function togglePanel(){
-  panelOpen=!panelOpen;
-  document.getElementById('panel').classList.toggle('up',panelOpen);
-}
+// ── PANEL ────────────────────────────────────────
+var panelOpen = false;
+function openPanel(){panelOpen=true;document.getElementById('panel').classList.add('up');}
+function togglePanel(){panelOpen=!panelOpen;document.getElementById('panel').classList.toggle('up',panelOpen);}
 function switchTab(i,el){
   document.querySelectorAll('.tab').forEach(function(t,j){
-    var on=j===i;
-    t.classList.toggle('on',on);
-    if(on){t.style.background=D?D.color:'#22c55e';t.style.borderColor=D?D.color:'#22c55e';}
-    else{t.style.background='';t.style.borderColor='';}
+    var on=j===i;t.classList.toggle('on',on);
+    if(on&&D){t.style.background=D.color;t.style.borderColor=D.color;}else{t.style.background='';t.style.borderColor='';}
   });
   document.querySelectorAll('.seg').forEach(function(s,j){s.classList.toggle('on',j===i);});
 }
+window.togglePanel=togglePanel;window.switchTab=switchTab;
 
-// ══════════════════════════════════════════════════
-// AR CON MINDAR + THREE.JS
-// ══════════════════════════════════════════════════
-var mindarThree=null, renderer=null, scene=null, camera=null;
-var cylinderMesh=null;
-var labelTexture=null;
-var arActive=false;
-var targetFound=false;
+// ── AR REAL ───────────────────────────────────────
+var mindarInstance = null;
+var arAnimId = null;
 
-async function startAR(){
-  if(!D) return;
-  showLoading('Iniciando cámara…');
+window.startAR = async function(){
+  if(!D){toast('⚠️ Datos no cargados, recarga');return;}
 
+  showLoading('Verificando cámara…');
   try {
-    // Verificar cámara disponible
-    await navigator.mediaDevices.getUserMedia({video:true});
+    await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
   } catch(e){
-    showError('No se pudo acceder a la cámara. Verifica los permisos e intenta de nuevo.');
-    return;
+    showError('Sin acceso a la cámara: '+e.message);return;
   }
 
-  showLoading('Cargando motor AR…');
+  // Esperar MindAR si aún no cargó
+  if(!window.MindARThree){
+    showLoading('Cargando motor AR…');
+    await new Promise(function(res,rej){
+      var t=setTimeout(function(){rej(new Error('MindAR timeout'));},10000);
+      window.addEventListener('mindar-ready',function(){clearTimeout(t);res();},{once:true});
+    }).catch(function(e){showError('No se pudo cargar MindAR. Verifica tu conexión o usa el demo.');return null;});
+    if(!window.MindARThree) return;
+  }
+
+  showLoading('Cargando marcadores…');
+  hideSplash();
+
+  var container = document.getElementById('ar-wrap');
+  container.style.display = 'block';
 
   try {
-    var container = document.getElementById('ar-wrap');
-    container.style.display='block';
-
-    // Inicializar MindAR
-    mindarThree = new window.MINDAR.IMAGE.MindARThree({
+    mindarInstance = new window.MindARThree({
       container: container,
-      imageTargetSrc: D.mind,   // archivo .mind del patrocinador
+      imageTargetSrc: D.mind,
       maxTrack: 1,
       uiLoading: 'no',
       uiScanning: 'no',
       uiError: 'no',
     });
 
-    var {renderer: r, scene: s, camera: cam} = mindarThree;
-    renderer=r; scene=s; camera=cam;
+    var renderer = mindarInstance.renderer;
+    var scene = mindarInstance.scene;
+    var camera = mindarInstance.camera;
 
-    // Crear cilindro con textura de la etiqueta
-    labelTexture = buildLabelTexture();
-    var geo = new THREE.CylinderGeometry(0.5, 0.5, 1.2, 64, 1, true);
-    var mat = new THREE.MeshBasicMaterial({
-      map: labelTexture,
-      side: THREE.FrontSide,
-    });
-    cylinderMesh = new THREE.Mesh(geo, mat);
-    cylinderMesh.rotation.y = 0;
+    // Cilindro con textura
+    var tex = buildTex();
+    var geo = new THREE.CylinderGeometry(0.55, 0.55, 1.4, 64, 1, true);
+    var mat = new THREE.MeshBasicMaterial({map:tex, side:THREE.DoubleSide});
+    var mesh = new THREE.Mesh(geo, mat);
 
-    // Anclar el cilindro al target (el QR)
-    var anchor = mindarThree.addAnchor(0);
-    anchor.group.add(cylinderMesh);
+    var anchor = mindarInstance.addAnchor(0);
+    anchor.group.add(mesh);
 
-    // Eventos de tracking
     anchor.onTargetFound = function(){
-      targetFound = true;
       document.getElementById('ar-status').textContent = '✓ Etiqueta detectada';
       document.getElementById('ar-status').classList.add('g');
-      document.getElementById('scan-frame').style.display='none';
-      document.getElementById('scan-label').style.display='none';
+      document.getElementById('scan-hint').style.display = 'none';
       if(!panelOpen) openPanel();
-      toast('✓ ¡Etiqueta AR activa!');
+      toast('✓ AR activo');
     };
     anchor.onTargetLost = function(){
-      targetFound = false;
       document.getElementById('ar-status').textContent = '⦿ Buscando etiqueta…';
       document.getElementById('ar-status').classList.remove('g');
-      document.getElementById('scan-frame').style.display='block';
-      document.getElementById('scan-label').style.display='block';
+      document.getElementById('scan-hint').style.display = 'block';
     };
 
-    showLoading('Cargando marcadores…');
-    await mindarThree.start();
-
-    hideSplash();
+    await mindarInstance.start();
     hideLoading();
-    document.getElementById('hud').style.display='flex';
-    document.getElementById('scan-frame').style.display='block';
-    document.getElementById('scan-label').style.display='block';
-    arActive=true;
+    document.getElementById('hud').style.display = 'flex';
+    document.getElementById('scan-hint').style.display = 'block';
 
-    // Loop de render — aquí actualizamos la rotación del cilindro
-    // MindAR ya actualiza la posición/rotación del anchor group automáticamente
-    // El cilindro dentro del anchor group rota con el QR en el mundo real
     renderer.setAnimationLoop(function(){
-      mindarThree.renderer.render(scene, camera);
+      renderer.render(scene, camera);
     });
 
   } catch(e){
-    console.error('AR error:',e);
-    if(e.message && e.message.includes('mind')){
-      showError('No se encontró el archivo de marcadores (.mind). Sube el archivo compilado del QR a la carpeta sponsors/.');
+    console.error(e);
+    container.style.display='none';
+    if(e.message && e.message.toLowerCase().includes('mind')){
+      showError('No se encontró el archivo .mind. Verifica que sponsors/'+D.mind.split('/').pop()+' está subido.');
     } else {
-      showError('Error al iniciar AR: '+e.message+'\n\nPrueba el modo demo.');
+      showError('Error AR: '+e.message);
     }
-    try{ document.getElementById('ar-wrap').style.display='none'; }catch(x){}
   }
-}
+};
 
-function stopAR(){
-  if(mindarThree){
-    try{ mindarThree.stop(); renderer.setAnimationLoop(null); }catch(e){}
-    mindarThree=null;
+window.stopAR = function(){
+  if(mindarInstance){
+    try{mindarInstance.stop();mindarInstance.renderer.setAnimationLoop(null);}catch(e){}
+    mindarInstance=null;
   }
-  arActive=false; targetFound=false;
   document.getElementById('ar-wrap').style.display='none';
   document.getElementById('hud').style.display='none';
-  document.getElementById('scan-frame').style.display='none';
-  document.getElementById('scan-label').style.display='none';
+  document.getElementById('scan-hint').style.display='none';
   document.getElementById('panel').classList.remove('up');
+  panelOpen=false;
   showSplash();
-}
+};
 
-// ══════════════════════════════════════════════════
-// TEXTURA DE LA ETIQUETA (canvas → Three.Texture)
-// La etiqueta panorámica tiene 4 zonas enrolladas
-// ══════════════════════════════════════════════════
-function buildLabelTexture(){
-  var W=1024, H=256;
-  var c=document.createElement('canvas');
-  c.width=W; c.height=H;
+function buildTex(){
+  var W=1024,H=256,zw=W/4;
+  var c=document.createElement('canvas');c.width=W;c.height=H;
   var ctx=c.getContext('2d');
-  var zw=W/4;
-  var color = D.color||'#22c55e';
-
-  // Zona 0: etiqueta original del agua
-  ctx.fillStyle='#fff'; ctx.fillRect(0,0,zw,H);
-  ctx.fillStyle='#e8f7ee'; ctx.fillRect(0,0,zw*0.22,H);
-  ctx.fillStyle='#1a6e3a'; ctx.font='bold 28px sans-serif';
-  ctx.fillText('agua',zw*0.26,H*0.42);
-  ctx.font='bold 28px sans-serif';
-  ctx.fillText('purificada',zw*0.26,H*0.62);
-  ctx.fillStyle='#555'; ctx.font='16px sans-serif';
-  ctx.fillText('237 ml · sin sodio',zw*0.26,H*0.77);
-  ctx.fillStyle='#22c55e'; ctx.font='14px sans-serif';
-  ctx.fillText('♻ 100% reciclable',zw*0.26,H*0.9);
-
-  // Zona 1: promo patrocinador
-  var g=ctx.createLinearGradient(zw,0,zw,H);
-  g.addColorStop(0,'#0d200d'); g.addColorStop(1,'#1a3a1a');
-  ctx.fillStyle=g; ctx.fillRect(zw,0,zw,H);
-  ctx.strokeStyle=color+'55'; ctx.lineWidth=1;
-  ctx.strokeRect(zw+.5,.5,zw-1,H-1);
-  // badge
-  ctx.fillStyle=color;
-  rrect(ctx,zw*2-60,6,54,28,6);
-  ctx.fillStyle='#000'; ctx.font='bold 14px sans-serif'; ctx.textAlign='center';
-  ctx.fillText(D.badge,zw*2-33,24); ctx.textAlign='left';
-  // emoji + nombre
-  ctx.font='32px sans-serif'; ctx.fillStyle='#fff';
-  ctx.fillText(D.emoji,zw+10,H*0.36);
-  ctx.fillStyle=color; ctx.font='bold 18px sans-serif';
-  var nm=D.name; if(nm.length>20)nm=nm.substring(0,19)+'…';
-  ctx.fillText(nm,zw+10,H*0.57);
-  ctx.fillStyle='rgba(134,239,172,.85)'; ctx.font='14px sans-serif';
-  ctx.fillText('🎁 '+D.promo.substring(0,26),zw+10,H*0.73);
-  ctx.fillStyle='rgba(255,255,255,.45)'; ctx.font='12px sans-serif';
-  ctx.fillText(D.cat.substring(0,28),zw+10,H*0.88);
-
-  // Zona 2: contacto
-  ctx.fillStyle='#0d1520'; ctx.fillRect(zw*2,0,zw,H);
-  ctx.strokeStyle='rgba(59,130,246,.3)'; ctx.lineWidth=1;
-  ctx.strokeRect(zw*2+.5,.5,zw-1,H-1);
-  ctx.fillStyle='#60a5fa'; ctx.font='bold 15px sans-serif';
-  ctx.fillText('CONTACTO',zw*2+10,H*0.17);
-  var crows=[['📞',ftel(D.tel)],['💬','WhatsApp'],['✉️',D.email.substring(0,22)],['🕐',D.hours.substring(0,24)]];
-  crows.forEach(function(row,i){
-    var ry=H*(0.26+i*0.185);
-    ctx.font='18px sans-serif'; ctx.fillStyle='#fff';
-    ctx.fillText(row[0],zw*2+10,ry+12);
-    ctx.font='13px sans-serif'; ctx.fillStyle='#cbd5e1';
-    ctx.fillText(row[1],zw*2+36,ry+12);
+  var col=D.color||'#22c55e';
+  // zona 0 — agua original
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,zw,H);
+  ctx.fillStyle='#e8f7ee';ctx.fillRect(0,0,zw*0.22,H);
+  ctx.fillStyle='#1a6e3a';ctx.font='bold 26px sans-serif';
+  ctx.fillText('agua',zw*0.26,H*0.42);ctx.fillText('purificada',zw*0.26,H*0.6);
+  ctx.fillStyle='#555';ctx.font='15px sans-serif';ctx.fillText('237 ml · sin sodio',zw*0.26,H*0.76);
+  ctx.fillStyle='#22c55e';ctx.font='13px sans-serif';ctx.fillText('♻ 100% reciclable',zw*0.26,H*0.9);
+  // zona 1 — promo
+  var g=ctx.createLinearGradient(zw,0,zw,H);g.addColorStop(0,'#0d200d');g.addColorStop(1,'#1a3a1a');
+  ctx.fillStyle=g;ctx.fillRect(zw,0,zw,H);
+  ctx.fillStyle=col;ctx.beginPath();ctx.roundRect(zw*2-62,5,56,26,5);ctx.fill();
+  ctx.fillStyle='#000';ctx.font='bold 13px sans-serif';ctx.textAlign='center';
+  ctx.fillText(D.badge,zw*2-34,22);ctx.textAlign='left';
+  ctx.font='30px sans-serif';ctx.fillStyle='#fff';ctx.fillText(D.emoji,zw+8,H*0.35);
+  ctx.fillStyle=col;ctx.font='bold 17px sans-serif';
+  ctx.fillText(D.name.substring(0,20),zw+8,H*0.55);
+  ctx.fillStyle='rgba(134,239,172,.85)';ctx.font='13px sans-serif';
+  ctx.fillText('🎁 '+D.promo.substring(0,26),zw+8,H*0.71);
+  ctx.fillStyle='rgba(255,255,255,.4)';ctx.font='11px sans-serif';
+  ctx.fillText(D.cat.substring(0,28),zw+8,H*0.86);
+  // zona 2 — contacto
+  ctx.fillStyle='#0d1520';ctx.fillRect(zw*2,0,zw,H);
+  ctx.fillStyle='#60a5fa';ctx.font='bold 14px sans-serif';ctx.fillText('CONTACTO',zw*2+8,H*0.16);
+  [['📞',ftel(D.tel)],['💬','WhatsApp'],['✉️',D.email.substring(0,22)],['🕐',D.hours.substring(0,22)]].forEach(function(r,i){
+    var ry=H*(0.25+i*0.185);
+    ctx.font='17px sans-serif';ctx.fillStyle='#fff';ctx.fillText(r[0],zw*2+8,ry+12);
+    ctx.font='12px sans-serif';ctx.fillStyle='#cbd5e1';ctx.fillText(r[1],zw*2+32,ry+12);
   });
-
-  // Zona 3: mapa/ubicación
-  ctx.fillStyle='#0d180d'; ctx.fillRect(zw*3,0,zw,H);
-  var mh=H*0.58;
-  ctx.fillStyle='#1a2a1a'; ctx.fillRect(zw*3,0,zw,mh);
-  ctx.strokeStyle='#2a3a2a'; ctx.lineWidth=5;
-  ctx.beginPath(); ctx.moveTo(zw*3,mh/2); ctx.lineTo(zw*4,mh/2); ctx.stroke();
-  ctx.lineWidth=3;
-  ctx.beginPath(); ctx.moveTo(zw*3+zw/2,0); ctx.lineTo(zw*3+zw/2,mh); ctx.stroke();
-  ctx.strokeStyle='#1e2e1e'; ctx.lineWidth=2;
-  ctx.beginPath(); ctx.moveTo(zw*3+zw/4,0); ctx.lineTo(zw*3+zw/4,mh); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(zw*3+zw*3/4,0); ctx.lineTo(zw*3+zw*3/4,mh); ctx.stroke();
-  // pin
-  ctx.fillStyle=color+'ee';
-  ctx.beginPath(); ctx.arc(zw*3+zw/2,mh/2,mh*0.15,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='white';
-  ctx.beginPath(); ctx.arc(zw*3+zw/2,mh/2,mh*0.06,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='#aaa'; ctx.font='13px sans-serif';
-  ctx.fillText('📍 '+D.addr.substring(0,22),zw*3+8,mh+H*0.14);
-  ctx.fillStyle=color; ctx.font='bold 14px sans-serif';
-  ctx.fillText('Toca → Abrir Maps',zw*3+8,mh+H*0.28);
-
-  var tex=new THREE.CanvasTexture(c);
-  tex.wrapS=THREE.RepeatWrapping;
-  return tex;
+  // zona 3 — mapa
+  ctx.fillStyle='#0d180d';ctx.fillRect(zw*3,0,zw,H);
+  var mh=H*0.57;ctx.fillStyle='#1a2a1a';ctx.fillRect(zw*3,0,zw,mh);
+  ctx.strokeStyle='#2a3a2a';ctx.lineWidth=5;
+  ctx.beginPath();ctx.moveTo(zw*3,mh/2);ctx.lineTo(zw*4,mh/2);ctx.stroke();
+  ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(zw*3+zw/2,0);ctx.lineTo(zw*3+zw/2,mh);ctx.stroke();
+  ctx.fillStyle=col+'ee';ctx.beginPath();ctx.arc(zw*3+zw/2,mh/2,mh*0.14,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='white';ctx.beginPath();ctx.arc(zw*3+zw/2,mh/2,mh*0.055,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#aaa';ctx.font='12px sans-serif';ctx.fillText('📍 '+D.addr.substring(0,22),zw*3+6,mh+H*0.13);
+  ctx.fillStyle=col;ctx.font='bold 13px sans-serif';ctx.fillText('Toca → Abrir Maps',zw*3+6,mh+H*0.27);
+  var tex=new THREE.CanvasTexture(c);tex.wrapS=THREE.RepeatWrapping;return tex;
 }
 
-function rrect(ctx2,x,y,w,h,r){
-  ctx2.beginPath();
-  ctx2.moveTo(x+r,y);
-  ctx2.lineTo(x+w-r,y); ctx2.arcTo(x+w,y,x+w,y+r,r);
-  ctx2.lineTo(x+w,y+h-r); ctx2.arcTo(x+w,y+h,x+w-r,y+h,r);
-  ctx2.lineTo(x+r,y+h); ctx2.arcTo(x,y+h,x,y+h-r,r);
-  ctx2.lineTo(x,y+r); ctx2.arcTo(x,y,x+r,y,r);
-  ctx2.closePath(); ctx2.fill();
-}
-
-// ══════════════════════════════════════════════════
-// DEMO MODE (cilindro canvas giratorio — sin cámara)
-// ══════════════════════════════════════════════════
-var demoCanvas=null, demoCtx=null;
-var demoW=0,demoH=0;
-var demoRot=0, demoDrag=false, demoLastX=0, demoVel=0;
-var demoAnim=null, demoLastZone=-1;
-var demoOffC=null;
+// ── DEMO MODE ────────────────────────────────────
+var demoC,demoCx,demoW=0,demoH=0,demoRot=0,demoDrag=false,demoLX=0,demoVel=0,demoAnim=null,demoLZ=-1,demoOff=null;
 var SEGS=60;
 
-function startDemo(){
-  hideSplash(); hideLoading();
-  document.getElementById('demo-wrap').style.display='flex';
-  document.getElementById('hud').style.display='none'; // el demo tiene su propio HUD inline
-
-  demoCanvas=document.getElementById('demo-c');
-  demoCtx=demoCanvas.getContext('2d');
+window.startDemo = function(){
+  hideSplash();hideLoading();
+  var wrap=document.getElementById('demo-wrap');
+  wrap.style.display='flex';
+  demoC=document.getElementById('demo-c');
+  demoCx=demoC.getContext('2d');
   demoResize();
   window.addEventListener('resize',demoResize);
-
-  demoCanvas.addEventListener('mousedown',function(e){demoDrag=true;demoLastX=e.clientX;demoVel=0;cancelAnimationFrame(demoAnim);});
-  document.addEventListener('mousemove',function(e){if(demoDrag){var dx=e.clientX-demoLastX;demoLastX=e.clientX;demoVel=dx;demoRot-=dx*0.012;demoDrawFrame();}});
+  demoC.addEventListener('mousedown',function(e){demoDrag=true;demoLX=e.clientX;demoVel=0;cancelAnimationFrame(demoAnim);});
+  document.addEventListener('mousemove',function(e){if(demoDrag){var dx=e.clientX-demoLX;demoLX=e.clientX;demoVel=dx;demoRot-=dx*0.012;demoFrame();}});
   document.addEventListener('mouseup',function(){if(demoDrag){demoDrag=false;demoInertia();}});
-  demoCanvas.addEventListener('touchstart',function(e){demoDrag=true;demoLastX=e.touches[0].clientX;demoVel=0;cancelAnimationFrame(demoAnim);e.preventDefault();},{passive:false});
-  document.addEventListener('touchmove',function(e){if(demoDrag){var dx=e.touches[0].clientX-demoLastX;demoLastX=e.touches[0].clientX;demoVel=dx;demoRot-=dx*0.012;demoDrawFrame();e.preventDefault();}},{passive:false});
+  demoC.addEventListener('touchstart',function(e){demoDrag=true;demoLX=e.touches[0].clientX;demoVel=0;cancelAnimationFrame(demoAnim);e.preventDefault();},{passive:false});
+  document.addEventListener('touchmove',function(e){if(demoDrag){var dx=e.touches[0].clientX-demoLX;demoLX=e.touches[0].clientX;demoVel=dx;demoRot-=dx*0.012;demoFrame();e.preventDefault();}},{passive:false});
   document.addEventListener('touchend',function(){if(demoDrag){demoDrag=false;demoInertia();}});
-}
+};
 
 function demoResize(){
-  demoW=demoCanvas.width=window.innerWidth;
-  demoH=demoCanvas.height=window.innerHeight*0.72;
-  demoCanvas.style.width=demoW+'px';
-  demoCanvas.style.height=(window.innerHeight*0.72)+'px';
-  buildDemoTexture();
-  demoDrawFrame();
-  // dots
-  var dots=''; for(var i=0;i<4;i++) dots+='<div class="ddot'+(i===0?' on':'')+'" id="dd'+i+'"></div>';
-  document.getElementById('demo-dots').innerHTML=dots;
-  document.getElementById('demo-dots').style.bottom=(window.innerHeight*0.28+8)+'px';
-  // color dots
-  if(D) document.querySelectorAll('.ddot.on').forEach(function(d){d.style.background=D.color||'#22c55e';});
+  demoW=demoC.width=window.innerWidth;
+  demoH=demoC.height=window.innerHeight;
+  demoC.style.width=demoW+'px';demoC.style.height=demoH+'px';
+  buildDemoTex();demoFrame();
+  var dots='';for(var i=0;i<4;i++)dots+='<div class="ddot'+(i===0?' on':'')+'" id="dd'+i+'"></div>';
+  var dd=document.getElementById('demo-dots');
+  dd.innerHTML=dots;
+  dd.style.bottom='1rem';
+  if(D)document.querySelectorAll('.ddot.on').forEach(function(d){d.style.background=D.color||'#22c55e';});
 }
 
-function buildDemoTexture(){
-  // reusar la textura del label si ya existe (o re-crear)
-  var W=1024,H=256;
-  demoOffC=document.createElement('canvas');
-  demoOffC.width=W; demoOffC.height=H;
-  if(!D){return;}
-  // Copiar la misma lógica de buildLabelTexture pero en 2D canvas
-  var ctx=demoOffC.getContext('2d');
-  var zw=W/4;
-  var color=D.color||'#22c55e';
-  // zona 0
-  ctx.fillStyle='#fff'; ctx.fillRect(0,0,zw,H);
-  ctx.fillStyle='#e8f7ee'; ctx.fillRect(0,0,zw*0.22,H);
-  ctx.fillStyle='#1a6e3a'; ctx.font='bold 28px sans-serif';
-  ctx.fillText('agua',zw*0.26,H*0.42);
-  ctx.fillText('purificada',zw*0.26,H*0.62);
-  ctx.fillStyle='#555'; ctx.font='16px sans-serif';
-  ctx.fillText('237 ml · sin sodio',zw*0.26,H*0.77);
-  ctx.fillStyle='#22c55e'; ctx.font='14px sans-serif';
-  ctx.fillText('♻ 100% reciclable',zw*0.26,H*0.9);
-  // zona 1
-  var g=ctx.createLinearGradient(zw,0,zw,H);
-  g.addColorStop(0,'#0d200d'); g.addColorStop(1,'#1a3a1a');
-  ctx.fillStyle=g; ctx.fillRect(zw,0,zw,H);
-  ctx.strokeStyle=color+'55'; ctx.lineWidth=1; ctx.strokeRect(zw+.5,.5,zw-1,H-1);
-  ctx.fillStyle=color; rrect(ctx,zw*2-60,6,54,28,6);
-  ctx.fillStyle='#000'; ctx.font='bold 14px sans-serif'; ctx.textAlign='center';
-  ctx.fillText(D.badge,zw*2-33,24); ctx.textAlign='left';
-  ctx.font='32px sans-serif'; ctx.fillStyle='#fff';
-  ctx.fillText(D.emoji,zw+10,H*0.36);
-  ctx.fillStyle=color; ctx.font='bold 18px sans-serif';
-  var nm=D.name; if(nm.length>20)nm=nm.substring(0,19)+'…';
-  ctx.fillText(nm,zw+10,H*0.57);
-  ctx.fillStyle='rgba(134,239,172,.85)'; ctx.font='14px sans-serif';
-  ctx.fillText('🎁 '+D.promo.substring(0,26),zw+10,H*0.73);
-  ctx.fillStyle='rgba(255,255,255,.45)'; ctx.font='12px sans-serif';
-  ctx.fillText(D.cat.substring(0,28),zw+10,H*0.88);
-  // zona 2
-  ctx.fillStyle='#0d1520'; ctx.fillRect(zw*2,0,zw,H);
-  ctx.strokeStyle='rgba(59,130,246,.3)'; ctx.lineWidth=1; ctx.strokeRect(zw*2+.5,.5,zw-1,H-1);
-  ctx.fillStyle='#60a5fa'; ctx.font='bold 15px sans-serif'; ctx.fillText('CONTACTO',zw*2+10,H*0.17);
-  var cr=[['📞',ftel(D.tel)],['💬','WhatsApp'],['✉️',D.email.substring(0,22)],['🕐',D.hours.substring(0,24)]];
-  cr.forEach(function(row,i){var ry=H*(0.26+i*0.185);ctx.font='18px sans-serif';ctx.fillStyle='#fff';ctx.fillText(row[0],zw*2+10,ry+12);ctx.font='13px sans-serif';ctx.fillStyle='#cbd5e1';ctx.fillText(row[1],zw*2+36,ry+12);});
-  // zona 3
-  ctx.fillStyle='#0d180d'; ctx.fillRect(zw*3,0,zw,H);
-  var mh=H*0.58;
-  ctx.fillStyle='#1a2a1a'; ctx.fillRect(zw*3,0,zw,mh);
-  ctx.strokeStyle='#2a3a2a'; ctx.lineWidth=5;
-  ctx.beginPath(); ctx.moveTo(zw*3,mh/2); ctx.lineTo(zw*4,mh/2); ctx.stroke();
-  ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(zw*3+zw/2,0); ctx.lineTo(zw*3+zw/2,mh); ctx.stroke();
-  ctx.fillStyle=color+'ee'; ctx.beginPath(); ctx.arc(zw*3+zw/2,mh/2,mh*0.15,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='white'; ctx.beginPath(); ctx.arc(zw*3+zw/2,mh/2,mh*0.06,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='#aaa'; ctx.font='13px sans-serif'; ctx.fillText('📍 '+D.addr.substring(0,22),zw*3+8,mh+H*0.14);
-  ctx.fillStyle=color; ctx.font='bold 14px sans-serif'; ctx.fillText('Toca → Abrir Maps',zw*3+8,mh+H*0.28);
+function buildDemoTex(){
+  if(!D)return;
+  var W=1024,H=256,zw=W/4;
+  demoOff=document.createElement('canvas');demoOff.width=W;demoOff.height=H;
+  var ctx=demoOff.getContext('2d');var col=D.color||'#22c55e';
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,zw,H);
+  ctx.fillStyle='#e8f7ee';ctx.fillRect(0,0,zw*0.22,H);
+  ctx.fillStyle='#1a6e3a';ctx.font='bold 26px sans-serif';
+  ctx.fillText('agua',zw*0.26,H*0.42);ctx.fillText('purificada',zw*0.26,H*0.6);
+  ctx.fillStyle='#555';ctx.font='15px sans-serif';ctx.fillText('237 ml · sin sodio',zw*0.26,H*0.76);
+  ctx.fillStyle='#22c55e';ctx.font='13px sans-serif';ctx.fillText('♻ 100% reciclable',zw*0.26,H*0.9);
+  var g=ctx.createLinearGradient(zw,0,zw,H);g.addColorStop(0,'#0d200d');g.addColorStop(1,'#1a3a1a');
+  ctx.fillStyle=g;ctx.fillRect(zw,0,zw,H);
+  ctx.fillStyle=col;ctx.beginPath();ctx.roundRect(zw*2-62,5,56,26,5);ctx.fill();
+  ctx.fillStyle='#000';ctx.font='bold 13px sans-serif';ctx.textAlign='center';
+  ctx.fillText(D.badge,zw*2-34,22);ctx.textAlign='left';
+  ctx.font='30px sans-serif';ctx.fillStyle='#fff';ctx.fillText(D.emoji,zw+8,H*0.35);
+  ctx.fillStyle=col;ctx.font='bold 17px sans-serif';ctx.fillText(D.name.substring(0,20),zw+8,H*0.55);
+  ctx.fillStyle='rgba(134,239,172,.85)';ctx.font='13px sans-serif';ctx.fillText('🎁 '+D.promo.substring(0,26),zw+8,H*0.71);
+  ctx.fillStyle='rgba(255,255,255,.4)';ctx.font='11px sans-serif';ctx.fillText(D.cat.substring(0,28),zw+8,H*0.86);
+  ctx.fillStyle='#0d1520';ctx.fillRect(zw*2,0,zw,H);
+  ctx.fillStyle='#60a5fa';ctx.font='bold 14px sans-serif';ctx.fillText('CONTACTO',zw*2+8,H*0.16);
+  [['📞',ftel(D.tel)],['💬','WhatsApp'],['✉️',D.email.substring(0,22)],['🕐',D.hours.substring(0,22)]].forEach(function(r,i){
+    var ry=H*(0.25+i*0.185);ctx.font='17px sans-serif';ctx.fillStyle='#fff';ctx.fillText(r[0],zw*2+8,ry+12);ctx.font='12px sans-serif';ctx.fillStyle='#cbd5e1';ctx.fillText(r[1],zw*2+32,ry+12);
+  });
+  ctx.fillStyle='#0d180d';ctx.fillRect(zw*3,0,zw,H);
+  var mh=H*0.57;ctx.fillStyle='#1a2a1a';ctx.fillRect(zw*3,0,zw,mh);
+  ctx.strokeStyle='#2a3a2a';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(zw*3,mh/2);ctx.lineTo(zw*4,mh/2);ctx.stroke();
+  ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(zw*3+zw/2,0);ctx.lineTo(zw*3+zw/2,mh);ctx.stroke();
+  ctx.fillStyle=col+'ee';ctx.beginPath();ctx.arc(zw*3+zw/2,mh/2,mh*0.14,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='white';ctx.beginPath();ctx.arc(zw*3+zw/2,mh/2,mh*0.055,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#aaa';ctx.font='12px sans-serif';ctx.fillText('📍 '+D.addr.substring(0,22),zw*3+6,mh+H*0.13);
+  ctx.fillStyle=col;ctx.font='bold 13px sans-serif';ctx.fillText('Toca → Abrir Maps',zw*3+6,mh+H*0.27);
 }
 
-function demoDrawFrame(){
-  if(!demoCtx||!demoOffC) return;
-  demoCtx.clearRect(0,0,demoW,demoH);
-  var cx=demoW/2, cy=demoH/2;
-  var bh=Math.min(demoH*0.9,340), bw=bh*0.42;
-  var cylH=bh*0.31, cylR=bw*0.47;
-  var cylTop=cy-cylH*0.05;
-  var cylW=demoOffC.width/2; // una vuelta = mitad del canvas de textura
-
-  // botella fondo
-  drawDemoBottle(cx,cy,bw,bh,cylTop,cylH);
-
+function demoFrame(){
+  if(!demoCx||!demoOff)return;
+  demoCx.clearRect(0,0,demoW,demoH);
+  var cx=demoW/2,cy=demoH/2;
+  var bh=Math.min(demoH*0.78,340),bw=bh*0.42;
+  var cylH=bh*0.31,cylR=bw*0.47;
+  var cylTop=cy-bh*0.08;
+  var texW=demoOff.width/2;
+  // botella back
+  var bx=cx-bw/2,by=cy-bh*0.42;
+  var gr=demoCx.createLinearGradient(bx,0,bx+bw,0);
+  gr.addColorStop(0,'rgba(110,170,200,.38)');gr.addColorStop(.3,'rgba(200,235,252,.42)');
+  gr.addColorStop(.7,'rgba(200,235,252,.42)');gr.addColorStop(1,'rgba(90,155,188,.38)');
+  demoCx.fillStyle=gr;demoCx.shadowColor='rgba(0,0,0,.45)';demoCx.shadowBlur=22;
+  bPath(demoCx,bx,by,bw,bh,cx);demoCx.fill();demoCx.shadowBlur=0;
   // cilindro
   for(var i=0;i<SEGS;i++){
-    var ang=(i/SEGS)*Math.PI*2 - demoRot;
-    var angN=((i+1)/SEGS)*Math.PI*2 - demoRot;
-    var cosA=Math.cos(ang), cosB=Math.cos(angN);
-    var x1=cx+cylR*cosA, x2=cx+cylR*cosB;
-    if(x1>=x2) continue;
-    var tu1=((i/SEGS)*cylW)%(demoOffC.width);
-    var tu2=(((i+1)/SEGS)*cylW)%(demoOffC.width);
-    var sw=Math.abs(tu2-tu1); if(sw<0.5) sw=0.5;
+    var ang=(i/SEGS)*Math.PI*2-demoRot;
+    var angN=((i+1)/SEGS)*Math.PI*2-demoRot;
+    var cA=Math.cos(ang),cB=Math.cos(angN);
+    var x1=cx+cylR*cA,x2=cx+cylR*cB;
+    if(x1>=x2)continue;
+    var tu1=((i/SEGS)*texW)%(demoOff.width);
+    var tu2=(((i+1)/SEGS)*texW)%(demoOff.width);
+    var sw=Math.abs(tu2-tu1);if(sw<0.5)sw=0.5;
     var dw=Math.abs(x2-x1)+1;
-    demoCtx.save();
-    demoCtx.beginPath(); demoCtx.rect(Math.min(x1,x2),cylTop,dw,cylH); demoCtx.clip();
-    demoCtx.drawImage(demoOffC,Math.min(tu1,tu2),0,sw,demoOffC.height,Math.min(x1,x2),cylTop,dw,cylH);
-    var bright=Math.max(0,cosA*0.5+0.65);
-    if(bright<0.99){demoCtx.fillStyle='rgba(0,0,0,'+(1-bright)*0.72+')';demoCtx.fillRect(Math.min(x1,x2),cylTop,dw,cylH);}
-    demoCtx.restore();
+    demoCx.save();
+    demoCx.beginPath();demoCx.rect(Math.min(x1,x2),cylTop,dw,cylH);demoCx.clip();
+    demoCx.drawImage(demoOff,Math.min(tu1,tu2),0,sw,demoOff.height,Math.min(x1,x2),cylTop,dw,cylH);
+    var br=Math.max(0,cA*0.5+0.65);
+    if(br<0.99){demoCx.fillStyle='rgba(0,0,0,'+(1-br)*0.72+')';demoCx.fillRect(Math.min(x1,x2),cylTop,dw,cylH);}
+    demoCx.restore();
   }
-  // elipses top/bottom
-  demoCtx.save();
-  demoCtx.strokeStyle='rgba(0,0,0,.3)'; demoCtx.lineWidth=1;
-  demoCtx.beginPath(); demoCtx.ellipse(cx,cylTop,cylR,cylH*0.045,0,0,Math.PI*2); demoCtx.stroke();
-  demoCtx.beginPath(); demoCtx.ellipse(cx,cylTop+cylH,cylR,cylH*0.045,0,0,Math.PI*2); demoCtx.stroke();
-  demoCtx.restore();
-  // reflejos sobre el cilindro
-  drawDemoBottleTop(cx,cy,bw,bh,cylTop);
-
-  // actualizar dots + panel
+  demoCx.save();demoCx.strokeStyle='rgba(0,0,0,.3)';demoCx.lineWidth=1;
+  demoCx.beginPath();demoCx.ellipse(cx,cylTop,cylR,cylH*0.045,0,0,Math.PI*2);demoCx.stroke();
+  demoCx.beginPath();demoCx.ellipse(cx,cylTop+cylH,cylR,cylH*0.045,0,0,Math.PI*2);demoCx.stroke();
+  demoCx.restore();
+  // cuello y tapa
+  var nw=bw*0.4,nh=bh*0.13,nx=cx-nw/2,ny=by-nh;
+  var gn=demoCx.createLinearGradient(nx,0,nx+nw,0);
+  gn.addColorStop(0,'rgba(120,180,210,.52)');gn.addColorStop(.5,'rgba(210,240,255,.58)');gn.addColorStop(1,'rgba(100,165,195,.52)');
+  demoCx.fillStyle=gn;
+  demoCx.beginPath();demoCx.moveTo(nx+3,ny+nh);demoCx.lineTo(bx+bw*0.27,ny+nh);
+  demoCx.bezierCurveTo(nx+nw*0.04,ny+nh*0.55,nx,ny+nh*0.28,nx,ny);
+  demoCx.lineTo(nx+nw,ny);demoCx.bezierCurveTo(nx+nw,ny+nh*0.28,nx+nw*0.96,ny+nh*0.55,bx+bw*0.73,ny+nh);
+  demoCx.closePath();demoCx.fill();
+  var gc=demoCx.createLinearGradient(0,ny-11,0,ny);gc.addColorStop(0,'#eee');gc.addColorStop(1,'#bbb');
+  demoCx.fillStyle=gc;demoCx.beginPath();demoCx.roundRect(nx+1,ny-11,nw-2,13,4);demoCx.fill();
+  // reflejo
+  demoCx.save();demoCx.globalAlpha=0.13;demoCx.strokeStyle='white';demoCx.lineWidth=2.5;demoCx.lineCap='round';
+  demoCx.beginPath();demoCx.moveTo(bx+bw*0.13,by+bh*0.28);demoCx.bezierCurveTo(bx+bw*0.11,by+bh*0.5,bx+bw*0.12,by+bh*0.62,bx+bw*0.13,by+bh*0.76);demoCx.stroke();
+  demoCx.restore();
+  // dots
+  var col=D?D.color:'#22c55e';
   var a=((demoRot%(Math.PI*2))+(Math.PI*2))%(Math.PI*2);
   var zone=Math.floor(a/(Math.PI/2))%4;
-  var c=D?D.color:'#22c55e';
-  for(var j=0;j<4;j++){
-    var d=document.getElementById('dd'+j);
-    if(d){d.classList.toggle('on',j===zone);d.style.background=j===zone?c:'rgba(255,255,255,.18)';}
-  }
-  if(zone!==demoLastZone){
-    demoLastZone=zone;
-    if(panelOpen) switchTabByZone(zone);
-  }
+  for(var j=0;j<4;j++){var dd=document.getElementById('dd'+j);if(dd){dd.classList.toggle('on',j===zone);dd.style.background=j===zone?col:'rgba(255,255,255,.18)';}}
+  if(zone!==demoLZ){demoLZ=zone;if(panelOpen)autoTab(zone);}
 }
 
-function switchTabByZone(zone){
-  var tabMap=[null,0,1,2]; // zona0=agua(no panel), zona1=promo, zona2=contacto, zona3=mapa
-  var t=tabMap[zone];
-  if(t!==null && t!==undefined){
-    var tabs=document.querySelectorAll('.tab');
-    if(tabs[t]) switchTab(t,tabs[t]);
-  }
-}
-
-function drawDemoBottle(cx,cy,bw,bh,cylTop,cylH){
-  var bx=cx-bw/2, by=cy-bh*0.42;
-  var g=demoCtx.createLinearGradient(bx,0,bx+bw,0);
-  g.addColorStop(0,'rgba(110,170,200,.4)');
-  g.addColorStop(0.3,'rgba(200,235,252,.45)');
-  g.addColorStop(0.7,'rgba(200,235,252,.45)');
-  g.addColorStop(1,'rgba(90,155,188,.4)');
-  demoCtx.fillStyle=g;
-  demoCtx.shadowColor='rgba(0,0,0,.45)'; demoCtx.shadowBlur=25;
-  bottlePath2(demoCtx,bx,by,bw,bh); demoCtx.fill();
-  demoCtx.shadowBlur=0;
-  // reflejo
-  demoCtx.save(); demoCtx.globalAlpha=0.15;
-  demoCtx.strokeStyle='white'; demoCtx.lineWidth=2.5; demoCtx.lineCap='round';
-  demoCtx.beginPath(); demoCtx.moveTo(bx+bw*0.13,by+bh*0.25); demoCtx.bezierCurveTo(bx+bw*0.11,by+bh*0.5,bx+bw*0.12,by+bh*0.6,bx+bw*0.13,by+bh*0.75); demoCtx.stroke();
-  demoCtx.restore();
-}
-
-function drawDemoBottleTop(cx,cy,bw,bh,cylTop){
-  var bx=cx-bw/2, by=cy-bh*0.42;
-  var nw=bw*0.4,nh=bh*0.13,nx=cx-nw/2,ny=by-nh;
-  var g2=demoCtx.createLinearGradient(nx,0,nx+nw,0);
-  g2.addColorStop(0,'rgba(120,180,210,.55)');
-  g2.addColorStop(0.5,'rgba(210,240,255,.6)');
-  g2.addColorStop(1,'rgba(100,165,195,.55)');
-  demoCtx.fillStyle=g2;
-  demoCtx.beginPath();
-  demoCtx.moveTo(nx+3,ny+nh); demoCtx.lineTo(bx+bw*0.27,ny+nh);
-  demoCtx.bezierCurveTo(nx+nw*0.04,ny+nh*0.55,nx,ny+nh*0.28,nx,ny);
-  demoCtx.lineTo(nx+nw,ny);
-  demoCtx.bezierCurveTo(nx+nw,ny+nh*0.28,nx+nw*0.96,ny+nh*0.55,bx+bw*0.73,ny+nh);
-  demoCtx.closePath(); demoCtx.fill();
-  var cg=demoCtx.createLinearGradient(0,ny-11,0,ny);
-  cg.addColorStop(0,'#eee'); cg.addColorStop(1,'#bbb');
-  demoCtx.fillStyle=cg;
-  demoCtx.beginPath(); demoCtx.roundRect(nx+1,ny-11,nw-2,13,4); demoCtx.fill();
-}
-
-function bottlePath2(ctx2,bx,by,bw,bh){
+function bPath(ctx2,bx,by,bw,bh,cx){
   var sh=bh*0.38;
   ctx2.beginPath();
   ctx2.moveTo(bx+bw*0.28,by);
@@ -806,52 +561,39 @@ function bottlePath2(ctx2,bx,by,bw,bh){
   ctx2.bezierCurveTo(bx+bw*1.04,by+bh*0.25,bx+bw,by+bh*0.1,bx+bw*0.72,by);
   ctx2.closePath();
 }
-// fix closure
-var cx=0;
+
+function autoTab(zone){var m=[null,0,1,2];var t=m[zone];if(t!=null){var tabs=document.querySelectorAll('.tab');if(tabs[t])switchTab(t,tabs[t]);}}
 
 function demoInertia(){
   if(Math.abs(demoVel)<0.4){demoSnap();return;}
-  demoVel*=0.87;
-  demoRot-=demoVel*0.012;
-  demoDrawFrame();
+  demoVel*=0.87;demoRot-=demoVel*0.012;demoFrame();
   demoAnim=requestAnimationFrame(demoInertia);
-  // abrir panel al terminar de girar
-  if(!panelOpen && Math.abs(demoVel)<2){
-    panelOpen=true;
-    openPanel();
-    var a=((demoRot%(Math.PI*2))+(Math.PI*2))%(Math.PI*2);
-    switchTabByZone(Math.floor(a/(Math.PI/2))%4);
-  }
+  if(!panelOpen&&Math.abs(demoVel)<2){openPanel();autoTab(Math.floor(((demoRot%(Math.PI*2))+(Math.PI*2))%(Math.PI*2)/(Math.PI/2))%4);}
 }
 function demoSnap(){
-  var step=Math.PI/2;
-  var target=Math.round(demoRot/step)*step;
-  var diff=target-demoRot;
-  if(Math.abs(diff)<0.005){demoRot=target;demoDrawFrame();return;}
-  demoRot+=diff*0.15;
-  demoDrawFrame();
-  demoAnim=requestAnimationFrame(demoSnap);
+  var step=Math.PI/2,target=Math.round(demoRot/step)*step,diff=target-demoRot;
+  if(Math.abs(diff)<0.005){demoRot=target;demoFrame();return;}
+  demoRot+=diff*0.15;demoFrame();demoAnim=requestAnimationFrame(demoSnap);
 }
-function stopDemo(){
+
+window.stopDemo = function(){
   document.getElementById('demo-wrap').style.display='none';
   document.getElementById('panel').classList.remove('up');
   window.removeEventListener('resize',demoResize);
   cancelAnimationFrame(demoAnim);
-  panelOpen=false; demoLastZone=-1;
-  showSplash();
-}
+  panelOpen=false;demoLZ=-1;showSplash();
+};
 
-// ══════════════════════════════════════════════════
-// UI UTILS
-// ══════════════════════════════════════════════════
+// ── UI UTILS ─────────────────────────────────────
 function showSplash(){document.getElementById('splash').style.display='flex';}
 function hideSplash(){document.getElementById('splash').style.display='none';}
-function showLoading(msg){document.getElementById('load-msg').textContent=msg||'Cargando…';document.getElementById('loading').style.display='flex';}
+function showLoading(m){document.getElementById('load-msg').textContent=m||'Cargando…';document.getElementById('loading').style.display='flex';hideSplash();}
 function hideLoading(){document.getElementById('loading').style.display='none';}
-function showError(msg){document.getElementById('err-msg').textContent=msg;document.getElementById('err-screen').style.display='flex';hideLoading();}
-
+function showError(m){document.getElementById('err-msg').textContent=m;document.getElementById('err-screen').style.display='flex';hideLoading();}
+window.showSplash=showSplash;
 var _tt;
 function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(_tt);_tt=setTimeout(function(){t.classList.remove('on');},2600);}
+window.toast=toast;
 </script>
 </body>
 </html>
