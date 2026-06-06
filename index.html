@@ -287,9 +287,11 @@ async function startAR(){
     var THREE=window.THREE;
     var renderer=mindarInst.renderer, scene=mindarInst.scene, camera=mindarInst.camera;
     var tex=buildTex(THREE);
-    var geo=new THREE.CylinderGeometry(0.55,0.55,1.4,64,1,true);
+    var cylR=0.159,cylH=0.23;
+    var geo=new THREE.CylinderGeometry(cylR,cylR,cylH,64,1,true);
     var mat=new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide});
     var mesh=new THREE.Mesh(geo,mat);
+    mesh.position.set(0, 0.025, 0);
     var anchor=mindarInst.addAnchor(0);
     anchor.group.add(mesh);
     anchor.onTargetFound=function(){
