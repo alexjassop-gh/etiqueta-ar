@@ -501,7 +501,9 @@ body{background:#0a0f0a;color:#fff;font-family:-apple-system,BlinkMacSystemFont,
 // DATOS
 // ══════════════════════════════════════
 // Datos hardcodeados + carga desde JSON si está disponible
-var D = {
+document.getElementById('btn-scan').disabled = false;
+document.getElementById('sp-pill').textContent = 'Dr. Ramírez Ortopedia';
+  var D = {
   name:'Dr. Ramírez Ortopedia', cat:'Especialista en rodilla y cadera',
   emoji:'🏥', tel:'8712345678', email:'consultas@drramirez.mx',
   wa:'528712345678', addr:'Blvd. Independencia 450, Col. Los Pinos, Torreón',
@@ -514,7 +516,7 @@ var D = {
 
 // Aplicar datos inmediatamente con los hardcodeados
 applyData();
-
+document.getElementById('btn-scan').disabled = false;
 // Luego intentar cargar el JSON del patrocinador (sobrescribe si existe)
 (function(){
   var id = new URLSearchParams(window.location.search).get('id') || 'drramirez';
