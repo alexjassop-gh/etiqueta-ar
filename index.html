@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<title>Etiqueta AR</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:#0a0f0a;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden;height:100dvh;width:100vw}
+
+/* ── PANTALLAS ── */
+.scr{position:fixed;inset:0;display:none}
+.scr.on{display:block}
+
+/* ── SPLASH ── */
+#s-splash{background:#0a0f0a}
+.splash-inner{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:2rem;text-align:center}
+.pill{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.35);border-radius:99px;padding:.3rem .9rem;font-size:.78rem;color:#22c55e}
+.splash-inner h1{font-size:1.4rem;font-weight:700;line-height:1.25}
+.splash-inner p{font-size:.85rem;color:#888;max-width:280px;line-height:1.6}
+.btn{background:#22c55e;color:#000;font-weight:700;font-size:1rem;border:none;border-radius:14px;padding:.95rem 2rem;cursor:pointer;width:100%;max-width:300px}
+.btn:active{opacity:.8}
+.btn-sec{background:transparent;border:1px solid rgba(255,255,255,.2);color:#888;border-radius:12px;padding:.7rem 2rem;cursor:pointer;font-size:.85rem;width:100%;max-width:300px}
+
+/* ── ROTAR ── */
+#s-rotate{background:#0a0f0a}
+.rotate-inner{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.2rem;padding:2rem;text-align:center}
+#rot-icon{font-size:4rem;display:inline-block}
+.rotate-inner h2{font-size:1.2rem;font-weight:700}
+.rotate-inner p{font-size:.85rem;color:#888;max-width:260px;line-height:1.5}
+
+/* ── EXPERIENCIA (cámara + etiqueta) ── */
+#s-exp{background:#000;overflow:hidden}
+#exp-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .5s}
+#exp-video.show{opacity:1}
+
+/* Etiqueta — empieza como tira vertical en el centro */
+#label{
+  position:absolute;
+  background:#fff;
+  border-radius:999px;
+  overflow:hidden;
+  box-shadow:0 0 60px rgba(0,0,0,.8);
+  /* JS controla width/height/top/left */
+}
+
+/* Contenido de la etiqueta: scroll horizontal de paneles */
+#label-inner{
+  display:flex;
+  height:100%;
+  /* width = 4 × ancho del label, JS lo setea */
+  transition:transform .35s cubic-bezier(.32,.72,0,1);
+}
+.panel{flex-shrink:0;height:100%;overflow:hidden;position:relative}
+
+/* Panel 0: Promo */
+.p0{background:linear-gradient(135deg,#0a4f7a,#0d6fa0);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem;gap:.5rem;text-align:center}
+.p0 .logo{font-size:2.2rem}
+.p0 .biz{font-size:1rem;font-weight:800;color:#fff;line-height:1.2}
+.p0 .cat{font-size:.7rem;color:rgba(255,255,255,.65)}
+.p0 .promo-box{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:.5rem .9rem;font-size:.8rem;font-weight:700;color:#fff;margin-top:.2rem}
+.p0 .badge{font-weight:900;font-size:1.4rem;border-radius:99px;padding:.2rem .8rem}
+.p0 .acts{display:flex;gap:.4rem;margin-top:.2rem;flex-wrap:wrap;justify-content:center}
+.abtn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);border-radius:9px;padding:.45rem .7rem;font-size:.7rem;color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none}
+.abtn span{font-size:1rem}
+.abtn.g{font-weight:700}
+.abtn:active{opacity:.7}
+
+/* Panel 1: Contacto */
+.p1{background:#0d1520;padding:1rem 1.2rem;display:flex;flex-direction:column;justify-content:center;gap:.4rem}
+.p1-ttl{font-size:.65rem;font-weight:700;color:#60a5fa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:.2rem}
+.crow{display:flex;align-items:center;gap:.6rem;padding:.4rem 0;border-bottom:1px solid rgba(255,255,255,.07);text-decoration:none;color:inherit}
+.crow:last-child{border:none}
+.cico{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:.85rem;flex-shrink:0}
+.clbl{font-size:.6rem;color:#666}
+.cval{font-size:.78rem;color:#eee;margin-top:1px}
+.carr{margin-left:auto;color:#444;font-size:.85rem}
+
+/* Panel 2: Mapa */
+.p2{background:#0d180d;display:flex;flex-direction:column}
+.p2-map{flex:1;overflow:hidden;position:relative}
+.p2-addr{padding:.6rem .9rem;font-size:.72rem;color:#aaa;line-height:1.4}
+.p2-btn{margin:.3rem .9rem .6rem;background:#22c55e;color:#000;font-weight:700;border:none;border-radius:9px;padding:.55rem;font-size:.8rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.35rem}
+
+/* Panel 3: Scratch */
+.p3{background:#0a0f0a;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem;gap:.5rem}
+.p3-ttl{font-size:.65rem;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px}
+.sc-card{width:100%;max-width:300px;height:110px;border-radius:13px;position:relative;overflow:hidden;cursor:crosshair;touch-action:none;flex-shrink:0}
+.sc-prize{position:absolute;inset:0;background:linear-gradient(135deg,#0d200d,#1a3a1a);border:1px solid rgba(34,197,94,.3);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.sc-pct{font-size:2.5rem;font-weight:900;line-height:1}
+.sc-txt{font-size:.72rem;color:rgba(255,255,255,.7)}
+.sc-sub{font-size:.6rem;color:#555;text-align:center;max-width:170px;line-height:1.3}
+#sc-canvas{position:absolute;inset:0;width:100%;height:100%;border-radius:13px;touch-action:none}
+.sc-hint{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;gap:4px;transition:opacity .3s}
+.sc-hint-i{font-size:1.6rem}
+.sc-hint-t{font-size:.75rem;color:rgba(255,255,255,.7);font-weight:600}
+.sc-hint-s{font-size:.62rem;color:rgba(255,255,255,.4)}
+.sc-disc{font-size:.58rem;color:#444;text-align:center;max-width:220px;line-height:1.4}
+#sc-cta{display:none;width:100%;max-width:300px}
+.sc-cta-btn{width:100%;border:none;border-radius:11px;padding:.65rem;font-size:.82rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.35rem}
+
+/* Nav dots */
+#nav{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:30;pointer-events:none}
+.ndot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.25);transition:background .2s,transform .2s}
+.ndot.on{background:#22c55e;transform:scale(1.4)}
+
+/* Nav labels */
+#navlbl{position:absolute;top:7px;left:50%;transform:translateX(-50%);display:flex;gap:.3rem;z-index:30}
+.nl{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.12);border-radius:99px;padding:.22rem .6rem;font-size:.6rem;color:rgba(255,255,255,.55);cursor:pointer;white-space:nowrap}
+.nl.on{background:rgba(34,197,94,.22);border-color:rgba(34,197,94,.45);color:#22c55e;font-weight:700}
+
+/* Close */
+#exp-close{position:absolute;top:7px;right:8px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.2);border-radius:99px;padding:.3rem .75rem;font-size:.72rem;color:#fff;cursor:pointer;z-index:40}
+
+/* Toast */
+#toast{position:fixed;top:56px;left:50%;transform:translateX(-50%) translateY(-10px);background:#22c55e;color:#000;border-radius:99px;padding:.38rem .95rem;font-size:.76rem;font-weight:700;z-index:500;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;white-space:nowrap}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<!-- SPLASH -->
+<div id="s-splash" class="scr on">
+  <div class="splash-inner">
+    <div style="font-size:3rem" id="sp-e">💧</div>
+    <div class="pill" id="sp-p">Cargando…</div>
+    <h1>¡Descubre tu<br>oferta especial!</h1>
+    <p>Esta botella es cortesía de tu patrocinador. Toca para ver tu descuento exclusivo.</p>
+    <button class="btn" id="sp-btn" onclick="goRotate()">✨ Abrir experiencia</button>
+  </div>
+</div>
+
+<!-- ROTAR -->
+<div id="s-rotate" class="scr">
+  <div class="rotate-inner">
+    <div id="rot-icon">📱</div>
+    <h2>Gira tu celular</h2>
+    <p>Para la mejor experiencia pon tu celular en posición horizontal y toca Continuar.</p>
+    <button class="btn" onclick="goExp()">Continuar →</button>
+    <button class="btn-sec" onclick="goExp()">Continuar vertical</button>
+  </div>
+</div>
+
+<!-- EXPERIENCIA -->
+<div id="s-exp" class="scr">
+  <video id="exp-video" autoplay playsinline muted></video>
+  <div id="label">
+    <div id="label-inner">
+      <!-- P0 Promo -->
+      <div class="panel p0" id="p0">
+        <div class="logo" id="p0-logo">🏥</div>
+        <div class="biz" id="p0-biz">Dr. Ramírez</div>
+        <div class="cat" id="p0-cat">Especialista</div>
+        <div class="promo-box" id="p0-promo">🎁 20% dto.</div>
+        <div class="badge" id="p0-badge">–20%</div>
+        <div class="acts">
+          <div class="abtn g" id="p0-wa" onclick="doWa()"><span>💬</span>WhatsApp</div>
+          <div class="abtn" onclick="doTel()"><span>📞</span>Llamar</div>
+          <div class="abtn" onclick="doVcf()"><span>👤</span>Contacto</div>
+          <a class="abtn" id="p0-web" href="#" target="_blank"><span>🌐</span>Web</a>
+        </div>
+      </div>
+      <!-- P1 Contacto -->
+      <div class="panel p1" id="p1">
+        <div class="p1-ttl">📞 Contacto directo</div>
+        <a class="crow" id="p1-tel" href="#"><div class="cico">📞</div><div><div class="clbl">Teléfono</div><div class="cval" id="p1-telv">—</div></div><span class="carr">›</span></a>
+        <a class="crow" id="p1-wa" href="#" target="_blank"><div class="cico">💬</div><div><div class="clbl">WhatsApp</div><div class="cval">Enviar mensaje</div></div><span class="carr">›</span></a>
+        <a class="crow" id="p1-mail" href="#"><div class="cico">✉️</div><div><div class="clbl">Email</div><div class="cval" id="p1-mailv">—</div></div><span class="carr">›</span></a>
+        <div class="crow"><div class="cico">🕐</div><div><div class="clbl">Horario</div><div class="cval" id="p1-hours">—</div></div></div>
+      </div>
+      <!-- P2 Mapa -->
+      <div class="panel p2" id="p2">
+        <div class="p2-map">
+          <svg width="100%" height="100%" viewBox="0 0 400 160" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+            <rect width="400" height="160" fill="#1a2a1a"/>
+            <line x1="0" y1="80" x2="400" y2="80" stroke="#2a3a2a" stroke-width="14"/>
+            <line x1="200" y1="0" x2="200" y2="160" stroke="#2a3a2a" stroke-width="10"/>
+            <line x1="100" y1="0" x2="100" y2="160" stroke="#1e2e1e" stroke-width="4"/>
+            <line x1="300" y1="0" x2="300" y2="160" stroke="#1e2e1e" stroke-width="4"/>
+            <rect x="8" y="8" width="84" height="24" rx="3" fill="#263326" opacity=".7"/>
+            <rect x="108" y="8" width="84" height="24" rx="3" fill="#263326" opacity=".7"/>
+            <rect x="208" y="8" width="84" height="24" rx="3" fill="#263326" opacity=".7"/>
+            <rect x="308" y="8" width="84" height="24" rx="3" fill="#263326" opacity=".7"/>
+            <rect x="8" y="44" width="84" height="24" rx="3" fill="#263326" opacity=".6"/>
+            <rect x="108" y="44" width="84" height="24" rx="3" fill="#263326" opacity=".6"/>
+            <rect x="208" y="44" width="84" height="24" rx="3" fill="#263326" opacity=".6"/>
+            <rect x="8" y="88" width="84" height="24" rx="3" fill="#263326" opacity=".6"/>
+            <rect x="108" y="88" width="84" height="24" rx="3" fill="#263326" opacity=".6"/>
+            <rect x="208" y="88" width="84" height="24" rx="3" fill="#263326" opacity=".6"/>
+            <rect x="308" y="88" width="84" height="24" rx="3" fill="#263326" opacity=".6"/>
+            <circle cx="200" cy="80" r="24" fill="none" stroke="#22c55e" stroke-width="2" opacity=".4"/>
+            <circle cx="200" cy="80" r="16" fill="#22c55e" opacity=".9"/>
+            <circle cx="200" cy="80" r="6" fill="white"/>
+          </svg>
+        </div>
+        <div class="p2-addr" id="p2-addr">—</div>
+        <button class="p2-btn" onclick="doMap()">🗺️ Abrir en Google Maps</button>
+      </div>
+      <!-- P3 Scratch -->
+      <div class="panel p3" id="p3">
+        <div class="p3-ttl">🎟 Tu descuento especial</div>
+        <div class="sc-card" id="sc-card">
+          <div class="sc-prize">
+            <div class="sc-pct" id="sc-pct">20%</div>
+            <div class="sc-txt" id="sc-txt">de descuento</div>
+            <div class="sc-sub">Muestra esta pantalla · Válido 30 días</div>
+          </div>
+          <canvas id="sc-canvas"></canvas>
+          <div class="sc-hint" id="sc-hint">
+            <div class="sc-hint-i">👆</div>
+            <div class="sc-hint-t">Raspa aquí</div>
+            <div class="sc-hint-s">Desliza el dedo</div>
+          </div>
+        </div>
+        <div class="sc-disc">* Simulación ilustrativa. Sujeto a verificación en sucursal.</div>
+        <div id="sc-cta">
+          <button class="sc-cta-btn" id="sc-cta-btn" onclick="doWaDiscount()">💬 Agendar con mi descuento</button>
+        </div>
+      </div>
+    </div>
+    <!-- nav -->
+    <div id="navlbl">
+      <div class="nl on" onclick="gp(0)">🎁 Promo</div>
+      <div class="nl" onclick="gp(1)">📞</div>
+      <div class="nl" onclick="gp(2)">📍</div>
+      <div class="nl" onclick="gp(3)">🎟</div>
+    </div>
+    <div id="nav">
+      <div class="ndot on"></div><div class="ndot"></div><div class="ndot"></div><div class="ndot"></div>
+    </div>
+  </div>
+  <button id="exp-close" onclick="closeExp()">✕</button>
+</div>
+
+<script>
+var D={name:'Dr. Ramírez Ortopedia',cat:'Especialista en rodilla y cadera',emoji:'🏥',tel:'8712345678',email:'consultas@drramirez.mx',wa:'528712345678',addr:'Blvd. Independencia 450, Col. Los Pinos, Torreón',map:'25.5428,-103.4068',web:'https://drramirez.mx',hours:'Lun–Vie 9am–6pm · Sáb 9am–1pm',promo:'20% dto. en primera consulta',badge:'–20%',appt:'Hoy 4:30 PM',color:'#22c55e',discounts:['15%','20%','20%','20%','25%']};
+
+// Cargar JSON
+(function(){var id=new URLSearchParams(location.search).get('id')||'drramirez';fetch('sponsors/'+id+'.json').then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(j){D=j;apply();}).catch(apply);})();
+
+function $(id){return document.getElementById(id);}
+function tx(id,v){var e=$(id);if(e)e.textContent=v;}
+function ftel(t){var d=t.replace(/\D/g,'');return d.length===10?d.replace(/(\d{3})(\d{3})(\d{4})/,'$1 $2 $3'):t;}
+
+function apply(){
+  var c=D.color||'#22c55e';
+  tx('sp-e',D.emoji);tx('sp-p','Cortesía de '+D.name);
+  tx('p0-logo',D.emoji);tx('p0-biz',D.name);tx('p0-cat',D.cat);
+  tx('p0-promo','🎁 '+D.promo);tx('p0-badge',D.badge);
+  $('p0-badge').style.cssText='font-weight:900;font-size:1.4rem;border-radius:99px;padding:.2rem .8rem;background:'+c+';color:#000';
+  $('p0-wa').style.cssText='background:'+c+';border-color:'+c+';color:#000;font-weight:700;border-radius:9px;padding:.45rem .7rem;font-size:.7rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px';
+  $('p0-web').href=D.web;
+  tx('p1-telv',ftel(D.tel));tx('p1-mailv',D.email);tx('p1-hours',D.hours);
+  $('p1-tel').href='tel:'+D.tel;$('p1-wa').href='https://wa.me/'+D.wa;$('p1-mail').href='mailto:'+D.email;
+  tx('p2-addr',D.addr);
+  var pk=(D.discounts||['20%'])[Math.floor(Math.random()*(D.discounts||['20%']).length)];
+  tx('sc-pct',pk);$('sc-pct').style.color=c;
+  tx('sc-txt','de descuento en '+D.promo.replace(/\d+%\s*/,''));
+  $('sc-cta-btn').style.cssText='width:100%;border:none;border-radius:11px;padding:.65rem;font-size:.82rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.35rem;background:'+c+';color:#000';
+  $('p2-map-pin') && $('p2-map-pin').setAttribute('fill',c);
+}
+apply();
+
+// ── ACCIONES ──
+function doWa(){window.open('https://wa.me/'+D.wa+'?text='+encodeURIComponent('Hola! Vi su promo en la botella (Uber): '+D.promo),'_blank');}
+function doTel(){location.href='tel:'+D.tel;}
+function doMap(){window.open('https://maps.google.com/?q='+(D.map.includes(',')?D.map:encodeURIComponent(D.addr)),'_blank');}
+function doVcf(){var v='BEGIN:VCARD\nVERSION:3.0\nFN:'+D.name+'\nTEL:'+D.tel+'\nEMAIL:'+D.email+'\nURL:'+D.web+'\nNOTE:'+D.promo+'\nEND:VCARD';var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([v],{type:'text/vcard'}));a.download=D.name.replace(/\s/g,'_')+'.vcf';a.click();toast('📲 Contacto guardado');}
+function doWaDiscount(){var p=$('sc-pct').textContent;window.open('https://wa.me/'+D.wa+'?text='+encodeURIComponent('Hola! Mi descuento en la botella (Uber): '+p+'. ¿Cómo lo aplico?'),'_blank');}
+
+// ── NAVEGACIÓN ──
+function show(id){document.querySelectorAll('.scr').forEach(function(s){s.classList.remove('on');});$(id).classList.add('on');}
+function goRotate(){show('s-rotate');animRotate();}
+var rotAnim;
+function animRotate(){
+  var el=$('rot-icon'),ang=0;
+  rotAnim=setInterval(function(){ang=(ang+5)%90;el.style.transform='rotate('+ang+'deg)';},50);
+}
+
+// ── EXPERIENCIA ──
+var camStream=null,curPanel=0,swipeX=0,labelW=0,labelH=0,scInit=false,scRevealed=false;
+
+async function goExp(){
+  clearInterval(rotAnim);
+  show('s-exp');
+  // Intentar cámara con timeout
+  var gotCam=false;
+  try{
+    var p=await Promise.race([
+      navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}),
+      new Promise(function(_,r){setTimeout(function(){r('timeout');},4000);})
+    ]);
+    if(typeof p!=='string'){
+      camStream=p;
+      var v=$('exp-video');
+      v.srcObject=camStream;
+      v.play().catch(function(){});
+      v.classList.add('show');
+      gotCam=true;
+    }
+  }catch(e){console.log('cam fail',e);}
+
+  if(!gotCam){
+    $('s-exp').style.background='radial-gradient(ellipse at 35% 55%, #0d2010 0%, #050a05 70%)';
+  }
+
+  // Iniciar animación de despegue con JS puro
+  setTimeout(function(){peelLabel();},600);
+}
+
+function peelLabel(){
+  var vw=window.innerWidth, vh=window.innerHeight;
+  var lbl=$('label');
+  var inner=$('label-inner');
+
+  // Tamaño final de la etiqueta
+  labelW=Math.min(vw*0.97, 640);
+  labelH=Math.min(vh*0.62, 320);
+
+  // Posición centrada
+  var finalL=(vw-labelW)/2;
+  var finalT=(vh-labelH)/2;
+
+  // Estado inicial: tira delgada vertical centrada
+  lbl.style.cssText='position:absolute;overflow:hidden;box-shadow:0 0 60px rgba(0,0,0,.8);border-radius:999px;background:'+(D.color||'#22c55e')+';'
+    +'width:10px;height:'+Math.min(vh*0.6,280)+'px;'
+    +'left:'+((vw-10)/2)+'px;top:'+((vh-Math.min(vh*0.6,280))/2)+'px;';
+
+  // Animar expansión con requestAnimationFrame
+  var start=null, dur=900;
+  var startW=10, startH=Math.min(vh*0.6,280);
+  var startL=(vw-10)/2, startT=(vh-startH)/2;
+
+  function ease(t){return t<.5?2*t*t:(1-Math.pow(-2*t+2,2)/2);}
+
+  function step(ts){
+    if(!start)start=ts;
+    var prog=Math.min((ts-start)/dur,1);
+    var e=ease(prog);
+    var w=startW+(labelW-startW)*e;
+    var h=startH+(labelH-startH)*e;
+    var l=startL+(finalL-startL)*e;
+    var t=startT+(finalT-startT)*e;
+    var br=Math.max(4, 999*(1-e));
+    lbl.style.width=w+'px';
+    lbl.style.height=h+'px';
+    lbl.style.left=l+'px';
+    lbl.style.top=t+'px';
+    lbl.style.borderRadius=br+'px';
+    if(prog<1){requestAnimationFrame(step);}
+    else{
+      // Configurar paneles
+      inner.style.width=(labelW*4)+'px';
+      document.querySelectorAll('.panel').forEach(function(p){p.style.width=labelW+'px';});
+      lbl.style.background='';
+      initSwipe();
+      setTimeout(function(){initScratch();},200);
+      if(navigator.vibrate)navigator.vibrate([40,20,40]);
+    }
+  }
+  requestAnimationFrame(step);
+}
+
+function closeExp(){
+  if(camStream){camStream.getTracks().forEach(function(t){t.stop();});camStream=null;}
+  $('exp-video').classList.remove('show');
+  $('s-exp').style.background='';
+  $('label').style.cssText='position:absolute;display:none;';
+  curPanel=0;scInit=false;scRevealed=false;
+  show('s-splash');
+}
+
+// ── PANELES ──
+function gp(i){
+  curPanel=i;
+  $('label-inner').style.transform='translateX(-'+(i*labelW)+'px)';
+  document.querySelectorAll('.ndot').forEach(function(d,j){d.classList.toggle('on',j===i);});
+  document.querySelectorAll('.nl').forEach(function(l,j){l.classList.toggle('on',j===i);});
+  if(i===3)setTimeout(initScratch,150);
+}
+
+function initSwipe(){
+  var lbl=$('label');
+  lbl.addEventListener('touchstart',function(e){swipeX=e.touches[0].clientX;},{passive:true});
+  lbl.addEventListener('touchend',function(e){
+    var dx=e.changedTouches[0].clientX-swipeX;
+    if(Math.abs(dx)>35){
+      if(dx<0&&curPanel<3)gp(curPanel+1);
+      if(dx>0&&curPanel>0)gp(curPanel-1);
+    }
+  },{passive:true});
+}
+
+// ── SCRATCH ──
+function initScratch(){
+  if(scInit)return;
+  var card=$('sc-card');
+  var canvas=$('sc-canvas');
+  if(!card||!canvas||card.offsetWidth===0)return;
+  scInit=true;
+  var W=card.offsetWidth,H=card.offsetHeight;
+  canvas.width=W;canvas.height=H;
+  var ctx=canvas.getContext('2d');
+  var g=ctx.createLinearGradient(0,0,W,H);
+  g.addColorStop(0,'#777');g.addColorStop(.3,'#bbb');g.addColorStop(.5,'#999');g.addColorStop(.7,'#ccc');g.addColorStop(1,'#888');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.globalAlpha=.1;
+  for(var i=0;i<W;i+=5){ctx.fillStyle=i%10===0?'#fff':'#444';ctx.fillRect(i,0,3,H);}
+  ctx.globalAlpha=1;
+  ctx.fillStyle='rgba(0,0,0,.3)';ctx.font='bold 14px sans-serif';ctx.textAlign='center';
+  ctx.fillText('★ RASPA AQUÍ ★',W/2,H/2-5);
+  ctx.font='10px sans-serif';ctx.fillStyle='rgba(0,0,0,.2)';
+  ctx.fillText('Desliza para revelar tu descuento',W/2,H/2+10);
+  ctx.globalCompositeOperation='destination-in';
+  ctx.beginPath();ctx.roundRect(0,0,W,H,13);ctx.fill();
+  ctx.globalCompositeOperation='source-over';
+  var sc=false;
+  function scr(x,y){
+    ctx.globalCompositeOperation='destination-out';
+    ctx.beginPath();ctx.arc(x,y,24,0,Math.PI*2);ctx.fill();
+    ctx.globalCompositeOperation='source-over';
+    chk(ctx,W,H);
+  }
+  canvas.addEventListener('mousedown',function(e){sc=true;scr(e.offsetX,e.offsetY);});
+  document.addEventListener('mousemove',function(e){if(sc){var r=canvas.getBoundingClientRect();scr(e.clientX-r.left,e.clientY-r.top);}});
+  document.addEventListener('mouseup',function(){sc=false;});
+  canvas.addEventListener('touchstart',function(e){e.preventDefault();sc=true;var r=canvas.getBoundingClientRect();scr(e.touches[0].clientX-r.left,e.touches[0].clientY-r.top);},{passive:false});
+  canvas.addEventListener('touchmove',function(e){e.preventDefault();if(!sc)return;var r=canvas.getBoundingClientRect();scr(e.touches[0].clientX-r.left,e.touches[0].clientY-r.top);},{passive:false});
+  canvas.addEventListener('touchend',function(){sc=false;});
+  canvas.addEventListener('touchstart',function(){$('sc-hint').style.opacity='0';},{once:true,passive:true});
+  canvas.addEventListener('mousedown',function(){$('sc-hint').style.opacity='0';},{once:true});
+}
+function chk(ctx,W,H){
+  if(scRevealed)return;
+  var d=ctx.getImageData(0,0,W,H).data,tr=0;
+  for(var i=3;i<d.length;i+=4){if(d[i]<128)tr++;}
+  if(tr/(W*H)>.5){
+    scRevealed=true;ctx.clearRect(0,0,W,H);
+    $('sc-cta').style.display='block';
+    if(navigator.vibrate)navigator.vibrate([80,40,80,40,120]);
+    toast('🎉 ¡Descuento revelado!');
+  }
+}
+
+// ── TOAST ──
+var _tt;
+function toast(m){var t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(_tt);_tt=setTimeout(function(){t.classList.remove('on');},2800);}
+</script>
+</body>
+</html>
