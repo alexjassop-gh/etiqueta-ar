@@ -291,7 +291,8 @@ async function startAR(){
     var geo=new THREE.CylinderGeometry(cylR,cylR,cylH,64,1,true);
     var mat=new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide});
     var mesh=new THREE.Mesh(geo,mat);
-    mesh.position.set(0, 0.025, 0);
+    mesh.rotation.x = Math.PI / 2;  // acostado horizontal sobre la botella
+    mesh.position.set(0, 0, -0.08); // pegado a la superficie de la etiqueta
     var anchor=mindarInst.addAnchor(0);
     anchor.group.add(mesh);
     anchor.onTargetFound=function(){
@@ -510,7 +511,4 @@ function showSplash2(){document.getElementById('err-screen').style.display='none
 window.showSplash=showSplash2;
 var _tt;
 function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(_tt);_tt=setTimeout(function(){t.classList.remove('on');},2600);}
-window.togglePanel=togglePanel;window.switchTab=switchTab;window.doWa=doWa;window.doTel=doTel;window.doMap=doMap;window.doVcf=doVcf;
-</script>
-</body>
-</html>
+window.togglePanel=togglePanel;window.swit
