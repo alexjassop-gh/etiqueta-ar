@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Etiqueta AR</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:#000;color:#fff;font-family:-apple-system,sans-serif;overflow:hidden;height:100vh;width:100vw}
+
+/* SPLASH */
+#splash{position:fixed;inset:0;background:#0a0f0a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:2rem;text-align:center;z-index:100}
+.pill{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.35);border-radius:99px;padding:.3rem .9rem;font-size:.78rem;color:#22c55e}
+#splash h1{font-size:1.4rem;font-weight:700;line-height:1.25}
+#splash p{font-size:.85rem;color:#888;max-width:280px;line-height:1.6}
+.btn{background:#22c55e;color:#000;font-weight:700;font-size:1rem;border:none;border-radius:14px;padding:.95rem 2rem;cursor:pointer;width:100%;max-width:300px}
+.btn:active{opacity:.8}
+.btn-sec{background:transparent;border:1px solid rgba(255,255,255,.2);color:#888;border-radius:12px;padding:.7rem 2rem;cursor:pointer;font-size:.85rem;width:100%;max-width:300px}
+
+/* AR SCREEN */
+#ar-screen{position:fixed;inset:0;display:none;z-index:10}
+#cam-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#ar-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+
+/* HUD */
+#hud{position:fixed;top:0;left:0;right:0;z-index:50;padding:.8rem 1rem;display:flex;justify-content:space-between;align-items:center}
+#status-pill{background:rgba(0,0,0,.65);border:1px solid rgba(255,255,255,.2);border-radius:99px;padding:.32rem .85rem;font-size:.75rem;color:#fff;transition:all .3s}
+#status-pill.found{border-color:rgba(34,197,94,.6);color:#22c55e}
+#status-pill.warning{border-color:rgba(255,180,0,.6);color:#ffb400}
+#btn-close{background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.2);border-radius:99px;padding:.32rem .8rem;font-size:.75rem;color:#fff;cursor:pointer}
+
+/* INSTRUCCIÓN GRANDE */
+#instruction{
+  position:fixed;bottom:120px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.75);border-radius:14px;
+  padding:.7rem 1.4rem;font-size:.9rem;font-weight:600;
+  color:#fff;text-align:center;z-index:50;
+  pointer-events:none;
+  transition:opacity .4s;
+  white-space:nowrap;
+}
+#instruction.hidden{opacity:0}
+
+/* Marco de escaneo */
+#scan-frame{
+  position:fixed;top:50%;left:50%;
+  transform:translate(-50%,-55%);
+  width:200px;height:200px;z-index:40;pointer-events:none;
+  transition:opacity .3s;
+}
+.sf{position:absolute;width:22px;height:22px;border-color:#22c55e;border-style:solid}
+.sf-tl{top:0;left:0;border-width:3px 0 0 3px;border-radius:4px 0 0 0}
+.sf-tr{top:0;right:0;border-width:3px 3px 0 0;border-radius:0 4px 0 0}
+.sf-bl{bottom:0;left:0;border-width:0 0 3px 3px;border-radius:0 0 0 4px}
+.sf-br{bottom:0;right:0;border-width:0 3px 3px 0;border-radius:0 0 4px 0}
+#scan-pulse{position:absolute;inset:0;border:2px solid rgba(34,197,94,.35);border-radius:4px;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:1;transform:scale(1.04)}}
+
+/* PANEL INFO (deslizable desde abajo) */
+#info-panel{
+  position:fixed;bottom:0;left:0;right:0;
+  background:rgba(6,10,6,.96);
+  border-top:1px solid rgba(34,197,94,.2);
+  border-radius:22px 22px 0 0;
+  z-index:60;
+  transform:translateY(100%);
+  transition:transform .38s cubic-bezier(.32,.72,0,1);
+  max-height:48vh;overflow-y:auto;
+}
+#info-panel.up{transform:translateY(0)}
+.phandle{width:36px;height:3px;background:rgba(255,255,255,.2);border-radius:2px;margin:12px auto .9rem;cursor:pointer}
+.p-inner{padding:.25rem 1.25rem 2rem}
+.sp-head{display:flex;gap:.85rem;align-items:center;margin-bottom:.9rem}
+.sp-ico{width:50px;height:50px;border-radius:13px;background:#1a2f1a;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0}
+.sp-name{font-size:1rem;font-weight:700}
+.sp-cat{font-size:.76rem;margin-top:2px;color:#22c55e}
+.tabs{display:flex;gap:.4rem;margin-bottom:.9rem;overflow-x:auto;scrollbar-width:none}
+.tab{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:99px;padding:.35rem .85rem;font-size:.75rem;color:#999;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.tab.on{color:#000;font-weight:700;background:#22c55e;border-color:#22c55e}
+.seg{display:none}.seg.on{display:block}
+.promo-card{border-radius:13px;padding:.8rem 1rem;margin-bottom:.85rem;display:flex;gap:.65rem;align-items:center;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3)}
+.promo-t{font-size:.9rem;font-weight:600}
+.promo-s{font-size:.75rem;color:#aaa;margin-top:2px}
+.promo-b{margin-left:auto;font-weight:800;font-size:.85rem;border-radius:99px;padding:2px 10px;background:#22c55e;color:#000;white-space:nowrap;flex-shrink:0}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.8rem}
+.act{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:11px;padding:.65rem .5rem;text-align:center;cursor:pointer;font-size:.76rem;color:#fff;display:flex;flex-direction:column;align-items:center;gap:4px;text-decoration:none}
+.act.main{background:#22c55e;border-color:#22c55e;color:#000;font-weight:700}
+.act span{font-size:1.15rem}.act:active{opacity:.7}
+.row{display:flex;align-items:center;gap:.7rem;padding:.5rem 0;border-bottom:1px solid rgba(255,255,255,.06);text-decoration:none;color:inherit}
+.row:last-child{border:none}
+.row-ico{width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:.88rem;flex-shrink:0}
+.row-lbl{font-size:.7rem;color:#666}.row-val{font-size:.82rem;color:#eee;margin-top:1px}.row-arr{margin-left:auto;color:#444}
+.map-box{width:100%;height:110px;border-radius:13px;overflow:hidden;margin-top:.8rem;cursor:pointer;position:relative;background:#1a2a1a}
+.map-lbl{position:absolute;bottom:7px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.65);border-radius:99px;padding:.2rem .7rem;font-size:.72rem;color:#fff;white-space:nowrap}
+
+/* VIDEO oculto para textura */
+#tex-video{display:none;position:absolute;pointer-events:none}
+
+/* TOAST */
+#toast{position:fixed;top:60px;left:50%;transform:translateX(-50%) translateY(-10px);background:#22c55e;color:#000;border-radius:99px;padding:.4rem 1rem;font-size:.78rem;font-weight:700;z-index:500;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;white-space:nowrap}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<!-- Video textura (oculto) -->
+<video id="tex-video" src="video botella tag.mp4" loop muted playsinline></video>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div style="font-size:3rem" id="sp-e">💧</div>
+  <div class="pill" id="sp-p">Cortesía de Dr. Ramírez</div>
+  <h1>Apunta la cámara<br>a la etiqueta</h1>
+  <p>Enfoca el QR de la etiqueta impresa para activar la experiencia AR.</p>
+  <button class="btn" onclick="startAR()">📷 Activar cámara AR</button>
+  <button class="btn-sec" onclick="showInfo()">Ver info sin cámara</button>
+</div>
+
+<!-- AR SCREEN -->
+<div id="ar-screen">
+  <video id="cam-video" autoplay playsinline muted></video>
+  <canvas id="ar-canvas"></canvas>
+
+  <div id="hud">
+    <div id="status-pill">⦿ Buscando QR…</div>
+    <button id="btn-close" onclick="stopAR()">✕ Cerrar</button>
+  </div>
+
+  <div id="scan-frame">
+    <div class="sf sf-tl"></div><div class="sf sf-tr"></div>
+    <div class="sf sf-bl"></div><div class="sf sf-br"></div>
+    <div id="scan-pulse"></div>
+  </div>
+
+  <div id="instruction">Apunta al QR de la etiqueta</div>
+</div>
+
+<!-- PANEL INFO -->
+<div id="info-panel">
+  <div class="phandle" onclick="togglePanel()"></div>
+  <div class="p-inner">
+    <div class="sp-head">
+      <div class="sp-ico" id="p-ico">🏥</div>
+      <div><div class="sp-name" id="p-name">Dr. Ramírez Ortopedia</div><div class="sp-cat" id="p-cat">Especialista en rodilla y cadera</div></div>
+    </div>
+    <div class="tabs">
+      <div class="tab on" onclick="st(0,this)">🎁 Promo</div>
+      <div class="tab" onclick="st(1,this)">📞 Contacto</div>
+      <div class="tab" onclick="st(2,this)">📍 Ubicación</div>
+    </div>
+    <div class="seg on" id="seg0">
+      <div class="promo-card">
+        <div style="font-size:1.35rem">🎁</div>
+        <div><div class="promo-t" id="pt">20% dto. en primera consulta</div><div class="promo-s" id="ps">Lun–Vie 9am–6pm · Sáb 9am–1pm</div></div>
+        <div class="promo-b" id="pb">–20%</div>
+      </div>
+      <div class="acts">
+        <div class="act main" id="a-wa" onclick="doWa()"><span>💬</span>WhatsApp</div>
+        <div class="act" onclick="doTel()"><span>📞</span>Llamar</div>
+        <div class="act" onclick="doVcf()"><span>👤</span>Contacto</div>
+        <a class="act" id="a-web" href="https://drramirez.mx" target="_blank"><span>🌐</span>Web</a>
+      </div>
+    </div>
+    <div class="seg" id="seg1">
+      <a class="row" id="r-tel" href="tel:8712345678"><div class="row-ico">📞</div><div><div class="row-lbl">Teléfono</div><div class="row-val" id="v-tel">871 234 5678</div></div><span class="row-arr">›</span></a>
+      <a class="row" id="r-wa" href="https://wa.me/528712345678" target="_blank"><div class="row-ico">💬</div><div><div class="row-lbl">WhatsApp</div><div class="row-val">Enviar mensaje</div></div><span class="row-arr">›</span></a>
+      <a class="row" href="mailto:consultas@drramirez.mx"><div class="row-ico">✉️</div><div><div class="row-lbl">Email</div><div class="row-val">consultas@drramirez.mx</div></div><span class="row-arr">›</span></a>
+      <div class="row"><div class="row-ico">🕐</div><div><div class="row-lbl">Horario</div><div class="row-val">Lun–Vie 9am–6pm · Sáb 9am–1pm</div></div></div>
+    </div>
+    <div class="seg" id="seg2">
+      <div class="row"><div class="row-ico">📍</div><div><div class="row-lbl">Dirección</div><div class="row-val">Blvd. Independencia 450, Los Pinos, Torreón</div></div></div>
+      <div class="map-box" onclick="doMap()">
+        <svg width="100%" height="110" viewBox="0 0 360 110" xmlns="http://www.w3.org/2000/svg">
+          <rect width="360" height="110" fill="#1a2a1a"/>
+          <line x1="0" y1="55" x2="360" y2="55" stroke="#2a3a2a" stroke-width="11"/>
+          <line x1="180" y1="0" x2="180" y2="110" stroke="#2a3a2a" stroke-width="7"/>
+          <line x1="90" y1="0" x2="90" y2="110" stroke="#1e2e1e" stroke-width="3"/>
+          <line x1="270" y1="0" x2="270" y2="110" stroke="#1e2e1e" stroke-width="3"/>
+          <rect x="5" y="5" width="78" height="18" rx="2" fill="#263326" opacity=".7"/>
+          <rect x="95" y="5" width="78" height="18" rx="2" fill="#263326" opacity=".7"/>
+          <rect x="5" y="30" width="78" height="18" rx="2" fill="#263326" opacity=".6"/>
+          <rect x="95" y="30" width="78" height="18" rx="2" fill="#263326" opacity=".6"/>
+          <rect x="5" y="65" width="78" height="18" rx="2" fill="#263326" opacity=".6"/>
+          <rect x="95" y="65" width="78" height="18" rx="2" fill="#263326" opacity=".6"/>
+          <circle cx="180" cy="55" r="16" fill="none" stroke="#22c55e" stroke-width="2" opacity=".4"/>
+          <circle cx="180" cy="55" r="11" fill="#22c55e" opacity=".9"/>
+          <circle cx="180" cy="55" r="4" fill="white"/>
+        </svg>
+        <div class="map-lbl">Toca para Google Maps</div>
+      </div>
+      <div class="acts" style="margin-top:.7rem">
+        <div class="act main" onclick="doMap()"><span>🗺️</span>Abrir Maps</div>
+        <div class="act" onclick="doWa()"><span>💬</span>Referencia</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATOS ──
+var D={name:'Dr. Ramírez Ortopedia',cat:'Especialista en rodilla y cadera',emoji:'🏥',tel:'8712345678',email:'consultas@drramirez.mx',wa:'528712345678',addr:'Blvd. Independencia 450, Col. Los Pinos, Torreón',map:'25.5428,-103.4068',web:'https://drramirez.mx',hours:'Lun–Vie 9am–6pm · Sáb 9am–1pm',promo:'20% dto. en primera consulta',badge:'–20%',color:'#22c55e'};
+
+(function(){var id=new URLSearchParams(location.search).get('id')||'drramirez';fetch('sponsors/'+id+'.json').then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(j){D=j;applyD();}).catch(function(){});})();
+
+function applyD(){
+  var c=D.color||'#22c55e';
+  document.getElementById('sp-e').textContent=D.emoji;
+  document.getElementById('sp-p').textContent='Cortesía de '+D.name;
+  document.getElementById('p-ico').textContent=D.emoji;
+  document.getElementById('p-name').textContent=D.name;
+  document.getElementById('p-cat').textContent=D.cat;
+  document.getElementById('p-cat').style.color=c;
+  document.getElementById('pt').textContent=D.promo;
+  document.getElementById('ps').textContent=D.hours;
+  document.getElementById('pb').textContent=D.badge;
+  document.getElementById('pb').style.background=c;
+  document.getElementById('a-wa').style.background=c;
+  document.getElementById('a-wa').style.borderColor=c;
+  document.getElementById('r-tel').href='tel:'+D.tel;
+  document.getElementById('v-tel').textContent=ftel(D.tel);
+  document.getElementById('r-wa').href='https://wa.me/'+D.wa;
+  document.getElementById('a-web').href=D.web;
+}
+applyD();
+
+function ftel(t){var d=t.replace(/\D/g,'');return d.length===10?d.replace(/(\d{3})(\d{3})(\d{4})/,'$1 $2 $3'):t;}
+function doWa(){window.open('https://wa.me/'+D.wa+'?text='+encodeURIComponent('Hola! Vi su promo en la botella (Uber): '+D.promo),'_blank');}
+function doTel(){location.href='tel:'+D.tel;}
+function doMap(){window.open('https://maps.google.com/?q='+D.map,'_blank');}
+function doVcf(){var v='BEGIN:VCARD\nVERSION:3.0\nFN:'+D.name+'\nTEL:'+D.tel+'\nEMAIL:'+D.email+'\nURL:'+D.web+'\nNOTE:'+D.promo+'\nEND:VCARD';var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([v],{type:'text/vcard'}));a.download=D.name.replace(/\s/g,'_')+'.vcf';a.click();toast('📲 Contacto guardado');}
+
+// ── PANEL ──
+var panelOpen=false;
+function togglePanel(){panelOpen=!panelOpen;document.getElementById('info-panel').classList.toggle('up',panelOpen);}
+function showInfo(){document.getElementById('splash').style.display='none';panelOpen=true;document.getElementById('info-panel').classList.add('up');}
+function st(i,el){document.querySelectorAll('.tab').forEach(function(t,j){t.classList.toggle('on',j===i);t.style.background=j===i?(D.color||'#22c55e'):'';t.style.borderColor=j===i?(D.color||'#22c55e'):'';t.style.color=j===i?'#000':'';});document.querySelectorAll('.seg').forEach(function(s,j){s.classList.toggle('on',j===i);});}
+
+// ── AR CON BARCODEDETECTOR + VIDEO OVERLAY ──
+var camStream=null, detector=null, arLoop=null;
+var arCanvas=null, arCtx=null;
+var qrFound=false, qrPos=null, qrSize=0;
+var videoTex=document.getElementById('tex-video');
+
+// Tamaño de referencia del QR en pantalla cuando la distancia es ideal
+// QR en la etiqueta mide ~2cm real. A ~25cm de distancia ocupa ~80px en pantalla móvil
+var IDEAL_QR_PX = 80;
+var MIN_QR_PX = 40;   // muy lejos
+var MAX_QR_PX = 180;  // muy cerca
+
+async function startAR(){
+  document.getElementById('splash').style.display='none';
+  document.getElementById('ar-screen').style.display='block';
+
+  arCanvas = document.getElementById('ar-canvas');
+  arCtx = arCanvas.getContext('2d');
+
+  // Iniciar video textura inmediatamente
+  // Video — debe reproducirse después de gesto de usuario
+  videoTex.load();
+  var playPromise = videoTex.play();
+  if(playPromise){
+    playPromise.catch(function(e){
+      console.log('video autoplay blocked, retrying...');
+      // Retry una vez más
+      setTimeout(function(){ videoTex.play().catch(function(){}); }, 500);
+    });
+  }
+
+  // Cámara
+  try{
+    camStream = await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}
+    });
+    var vid = document.getElementById('cam-video');
+    vid.srcObject = camStream;
+    await vid.play();
+
+    // Resize canvas al tamaño real
+    arCanvas.width = vid.videoWidth || window.innerWidth;
+    arCanvas.height = vid.videoHeight || window.innerHeight;
+    arCanvas.style.width = '100%';
+    arCanvas.style.height = '100%';
+
+  }catch(e){
+    setStatus('⚠️ Sin cámara','');
+    setInstruction('Sin acceso a cámara');
+    return;
+  }
+
+  // BarcodeDetector
+  if('BarcodeDetector' in window){
+    detector = new BarcodeDetector({formats:['qr_code']});
+    arLoop = requestAnimationFrame(detectLoop);
+  } else {
+    setStatus('⚠️ Sin detector QR','warning');
+    setInstruction('Tu navegador no soporta detección QR nativa');
+  }
+}
+
+var lastQRTime=0, smoothX=0, smoothY=0, smoothW=0, smoothH=0, firstFound=false;
+
+async function detectLoop(){
+  var vid = document.getElementById('cam-video');
+  if(vid.readyState >= 2){
+    try{
+      var codes = await detector.detect(vid);
+      if(codes.length > 0){
+        var qr = codes[0];
+        var cx2 = (qr.boundingBox.left + qr.boundingBox.right)/2;
+        var cy2 = (qr.boundingBox.top + qr.boundingBox.bottom)/2;
+        var qw = qr.boundingBox.width;
+        var qh = qr.boundingBox.height;
+
+        // Suavizar posición (lerp)
+        if(!firstFound){smoothX=cx2;smoothY=cy2;smoothW=qw;smoothH=qh;firstFound=true;}
+        else{
+          var lerp=0.25;
+          smoothX=smoothX+(cx2-smoothX)*lerp;
+          smoothY=smoothY+(cy2-smoothY)*lerp;
+          smoothW=smoothW+(qw-smoothW)*lerp;
+          smoothH=smoothH+(qh-smoothH)*lerp;
+        }
+
+        qrSize = (smoothW+smoothH)/2;
+        lastQRTime = Date.now();
+        qrFound = true;
+
+        // Instrucciones según distancia
+        if(qrSize < MIN_QR_PX){
+          setStatus('📏 Acércate más','warning');
+          setInstruction('Acerca más la botella a la cámara');
+        } else if(qrSize > MAX_QR_PX){
+          setStatus('📏 Aléjate un poco','warning');
+          setInstruction('Aleja un poco la botella');
+        } else {
+          setStatus('✓ Etiqueta detectada','found');
+          setInstruction(null); // ocultar instrucción
+          if(!panelOpen){panelOpen=true;document.getElementById('info-panel').classList.add('up');}
+        }
+
+        drawVideoOverlay(smoothX, smoothY, smoothW, smoothH, vid);
+
+      } else {
+        // QR perdido
+        if(Date.now()-lastQRTime > 400){
+          qrFound=false;firstFound=false;
+          setStatus('⦿ Buscando QR…','');
+          setInstruction('Apunta al QR de la etiqueta');
+          arCtx.clearRect(0,0,arCanvas.width,arCanvas.height);
+        } else if(firstFound) {
+          // Mantener último frame un momento
+          drawVideoOverlay(smoothX,smoothY,smoothW,smoothH,vid);
+        }
+      }
+    }catch(e){}
+  }
+  arLoop = requestAnimationFrame(detectLoop);
+}
+
+function drawVideoOverlay(qcx, qcy, qw, qh, camVid){
+  arCtx.clearRect(0,0,arCanvas.width,arCanvas.height);
+  if(videoTex.readyState < 2) return;
+
+  // Calcular posición del overlay del video
+  // El QR está en el lado derecho de la etiqueta (según nuestro diseño)
+  // La etiqueta mide: 19.5cm ancho x 4.5cm alto
+  // El QR mide: ~2cm → ocupa qw píxeles en pantalla
+  // Escala: px_por_cm = qw / 2
+  var scale = qw / 60; // QR real ~2cm, dibujado como 60px reference
+
+  // Dimensiones del video overlay en pantalla
+  // La etiqueta es 19.5 x 4.5 cm → ratio 4.33:1
+  // El QR está a ~1cm del borde derecho
+  var labelW = scale * 195; // 19.5cm en px
+  var labelH = scale * 45;  // 4.5cm en px
+
+  // El QR está en la esquina derecha → calcular origen etiqueta
+  var labelX = qcx - labelW * 0.88; // QR al 88% del ancho
+  var labelY = qcy - labelH * 0.5;  // QR centrado verticalmente
+
+  // Dibujar video como textura del overlay
+  arCtx.save();
+  arCtx.globalAlpha = 0.92;
+  // Clip redondeado a la forma de la etiqueta
+  arCtx.beginPath();
+  arCtx.roundRect(labelX, labelY, labelW, labelH, 6);
+  arCtx.clip();
+  arCtx.drawImage(videoTex, labelX, labelY, labelW, labelH);
+  arCtx.restore();
+
+  // Borde neón alrededor
+  var col = D.color||'#22c55e';
+  arCtx.save();
+  arCtx.shadowColor=col;arCtx.shadowBlur=12;
+  arCtx.strokeStyle=col;arCtx.lineWidth=2;arCtx.globalAlpha=0.7;
+  arCtx.beginPath();arCtx.roundRect(labelX,labelY,labelW,labelH,6);arCtx.stroke();
+  arCtx.restore();
+
+  // Indicador de distancia (barra)
+  var idealRatio = Math.min(1, Math.max(0, (qrSize-MIN_QR_PX)/(IDEAL_QR_PX-MIN_QR_PX)));
+  if(qrSize>IDEAL_QR_PX) idealRatio=Math.min(1,1-(qrSize-IDEAL_QR_PX)/(MAX_QR_PX-IDEAL_QR_PX));
+  var barW=80, barX=arCanvas.width/2-barW/2, barY=labelY-24;
+  arCtx.fillStyle='rgba(0,0,0,.5)';arCtx.fillRect(barX,barY,barW,8);
+  arCtx.fillStyle=idealRatio>0.7?col:'#ffb400';
+  arCtx.fillRect(barX,barY,barW*idealRatio,8);
+  arCtx.strokeStyle='rgba(255,255,255,.3)';arCtx.lineWidth=1;arCtx.strokeRect(barX,barY,barW,8);
+
+  // Marco del QR detectado
+  arCtx.save();arCtx.strokeStyle='rgba(255,255,255,.4)';arCtx.lineWidth=1.5;arCtx.setLineDash([4,3]);
+  arCtx.strokeRect(qcx-qw/2,qcy-qh/2,qw,qh);arCtx.restore();
+}
+
+function stopAR(){
+  if(arLoop){cancelAnimationFrame(arLoop);arLoop=null;}
+  if(camStream){camStream.getTracks().forEach(function(t){t.stop();});camStream=null;}
+  videoTex.pause();
+  document.getElementById('ar-screen').style.display='none';
+  document.getElementById('splash').style.display='flex';
+  panelOpen=false;
+  document.getElementById('info-panel').classList.remove('up');
+}
+
+function setStatus(txt,cls){
+  var el=document.getElementById('status-pill');
+  el.textContent=txt;
+  el.className='';
+  if(cls)el.classList.add(cls);
+}
+
+function setInstruction(txt){
+  var el=document.getElementById('instruction');
+  if(txt){el.textContent=txt;el.classList.remove('hidden');}
+  else{el.classList.add('hidden');}
+}
+
+var _tt;
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(_tt);_tt=setTimeout(function(){t.classList.remove('on');},2800);}
+</script>
+</body>
+</html>
